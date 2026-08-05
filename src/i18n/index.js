@@ -130,6 +130,73 @@ const messages = {
       checkout: '去结算',
       checkoutSuccess: '下单成功！感谢您的购买',
       loginRequired: '请先登录后再加入购物车，是否现在登录？'
+    },
+    orders: {
+      title: '我的订单',
+      orderNo: '订单号',
+      status: {
+        pending: '待确认',
+        confirmed: '已确认',
+        preparing: '制作中',
+        completed: '已完成',
+        cancelled: '已取消'
+      },
+      total: '总计',
+      cancel: '取消订单',
+      reorder: '再来一单',
+      empty: '暂无订单',
+      goOrder: '去点餐',
+      confirmCancel: '确定要取消该订单吗？',
+      cancelSuccess: '订单已取消',
+      reorderSuccess: '已重新下单'
+    },
+    profile: {
+      myAccount: '我的账户',
+      myOrders: '我的订单',
+      editProfile: '编辑资料',
+      changePassword: '修改密码',
+      settings: '设置',
+      language: '语言',
+      clearCache: '清除缓存',
+      logout: '退出登录',
+      nickname: '昵称',
+      email: '邮箱',
+      cancel: '取消',
+      save: '保存',
+      saveSuccess: '保存成功',
+      oldPassword: '旧密码',
+      newPassword: '新密码',
+      confirmPassword: '确认密码',
+      passwordNotMatch: '两次输入的密码不一致',
+      changePasswordSuccess: '密码修改成功',
+      confirmClearCache: '确定要清除缓存吗？',
+      clearCacheSuccess: '缓存已清除',
+      confirmLogout: '确定要退出登录吗？'
+    },
+    productDetail: {
+      size: '选择杯型',
+      sizes: {
+        small: '小杯',
+        medium: '中杯',
+        large: '大杯'
+      },
+      toppings: '添加配料',
+      toppingsList: {
+        pearl: '珍珠',
+        coconut: '椰果',
+        pudding: '布丁'
+      },
+      sweetness: '甜度',
+      sweetnessList: {
+        none: '无糖',
+        less: '少糖',
+        normal: '标准',
+        more: '多糖'
+      },
+      quantity: '数量',
+      totalPrice: '总价',
+      addSuccess: '已添加到购物车',
+      loading: '加载中...'
     }
   },
   'en': {
@@ -261,6 +328,73 @@ const messages = {
       checkout: 'Checkout',
       checkoutSuccess: 'Order placed successfully! Thank you for your purchase',
       loginRequired: 'Please login first to add items to cart. Login now?'
+    },
+    orders: {
+      title: 'My Orders',
+      orderNo: 'Order No',
+      status: {
+        pending: 'Pending',
+        confirmed: 'Confirmed',
+        preparing: 'Preparing',
+        completed: 'Completed',
+        cancelled: 'Cancelled'
+      },
+      total: 'Total',
+      cancel: 'Cancel',
+      reorder: 'Reorder',
+      empty: 'No orders yet',
+      goOrder: 'Order Now',
+      confirmCancel: 'Are you sure to cancel this order?',
+      cancelSuccess: 'Order cancelled',
+      reorderSuccess: 'Order placed again'
+    },
+    profile: {
+      myAccount: 'My Account',
+      myOrders: 'My Orders',
+      editProfile: 'Edit Profile',
+      changePassword: 'Change Password',
+      settings: 'Settings',
+      language: 'Language',
+      clearCache: 'Clear Cache',
+      logout: 'Logout',
+      nickname: 'Nickname',
+      email: 'Email',
+      cancel: 'Cancel',
+      save: 'Save',
+      saveSuccess: 'Saved successfully',
+      oldPassword: 'Old Password',
+      newPassword: 'New Password',
+      confirmPassword: 'Confirm Password',
+      passwordNotMatch: 'Passwords do not match',
+      changePasswordSuccess: 'Password changed successfully',
+      confirmClearCache: 'Are you sure to clear cache?',
+      clearCacheSuccess: 'Cache cleared',
+      confirmLogout: 'Are you sure to logout?'
+    },
+    productDetail: {
+      size: 'Size',
+      sizes: {
+        small: 'Small',
+        medium: 'Medium',
+        large: 'Large'
+      },
+      toppings: 'Toppings',
+      toppingsList: {
+        pearl: 'Pearl',
+        coconut: 'Coconut',
+        pudding: 'Pudding'
+      },
+      sweetness: 'Sweetness',
+      sweetnessList: {
+        none: 'No Sugar',
+        less: 'Less Sugar',
+        normal: 'Normal',
+        more: 'Extra Sugar'
+      },
+      quantity: 'Quantity',
+      totalPrice: 'Total',
+      addSuccess: 'Added to cart',
+      loading: 'Loading...'
     }
   }
 }

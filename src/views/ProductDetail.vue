@@ -1,412 +1,450 @@
 <template>
-  <div class="product-detail" v-if="product">
-    <div class="container">
-      <div class="product-detail__content">
-        <!-- 产品图片 -->
-        <div class="product-detail__image">
-          <img :src="product.image" :alt="product.name" />
-        </div>
-
-        <!-- 产品信息 -->
-        <div class="product-detail__info">
-          <div class="badges">
-            <span v-if="product.isNew" class="badge badge--new">NEW</span>
-            <span v-if="product.isHot" class="badge badge--hot">HOT</span>
-          </div>
-
-          <h1 class="product-name">{{ product.name }}</h1>
-          <p class="product-desc">{{ product.description }}</p>
-
-          <div class="product-price">
-            <span class="currency">¥</span>
-            <span class="value">{{ product.price }}</span>
-          </div>
-
-          <!-- 规格选择 -->
-          <div class="options">
-            <div class="option-group">
-              <h4>温度</h4>
-              <div class="option-buttons">
-                <button 
-                  v-for="temp in temperatures" 
-                  :key="temp"
-                  :class="['option-btn', { active: selectedTemp === temp }]"
-                  @click="selectedTemp = temp"
-                >
-                  {{ temp }}
-                </button>
-              </div>
-            </div>
-
-            <div class="option-group">
-              <h4>甜度</h4>
-              <div class="option-buttons">
-                <button 
-                  v-for="sweet in sweetness" 
-                  :key="sweet"
-                  :class="['option-btn', { active: selectedSweet === sweet }]"
-                  @click="selectedSweet = sweet"
-                >
-                  {{ sweet }}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 数量选择 -->
-          <div class="quantity">
-            <h4>数量</h4>
-            <div class="quantity-control">
-              <button class="quantity-btn" @click="decreaseQuantity">-</button>
-              <span class="quantity-value">{{ quantity }}</span>
-              <button class="quantity-btn" @click="increaseQuantity">+</button>
-            </div>
-          </div>
-
-          <!-- 操作按钮 -->
-          <div class="actions">
-            <button class="btn-add-cart" @click="addToCart">
-              加入购物车
-            </button>
-            <button class="btn-buy-now" @click="buyNow">
-              立即购买
-            </button>
-          </div>
-        </div>
+  <div class="product-detail-page">
+    <div v-if="product" class="product-container">
+      <!-- 产品图片 -->
+      <div class="product-image-section">
+        <img :src="product.image" :alt="product.name" class="product-image" />
+        <div v-if="product.isNew" class="product-badge">{{ t('order.new') }}</div>
       </div>
 
-      <!-- 推荐产品 -->
-      <section class="recommendations">
-        <h2 class="section-title">你可能也喜欢</h2>
-        <div class="products-grid">
-          <ProductCard 
-            v-for="item in recommendedProducts" 
-            :key="item.id"
-            :product="item"
-          />
-        </div>
-      </section>
-    </div>
-  </div>
+      <!-- 产品信息 -->
+      <div class="product-info-section">
+        <h1 class="product-name">{{ locale === 'zh-CN' ? product.name : product.nameEn }}</h1>
+        <p class="product-desc">{{ locale === 'zh-CN' ? product.desc : product.descEn }}</p>
+        <div class="product-price">¥{{ product.price }}</div>
 
-  <div v-else class="product-detail product-detail--loading">
-    <div class="loading"></div>
+        <!-- 规格选择 -->
+        <div class="spec-section">
+          <h3 class="spec-title">{{ t('productDetail.size') }}</h3>
+          <div class="spec-options">
+            <button
+              v-for="size in sizes"
+              :key="size.id"
+              :class="['spec-btn', { active: selectedSize === size.id }]"
+              @click="selectedSize = size.id"
+            >
+              <span class="spec-name">{{ t(`productDetail.sizes.${size.id}`) }}</span>
+              <span class="spec-extra">{{ size.extra > 0 ? `+¥${size.extra}` : '' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 配料选择 -->
+        <div class="spec-section">
+          <h3 class="spec-title">{{ t('productDetail.toppings') }}</h3>
+          <div class="spec-options">
+            <button
+              v-for="topping in toppings"
+              :key="topping.id"
+              :class="['spec-btn', { active: selectedToppings.includes(topping.id) }]"
+              @click="toggleTopping(topping.id)"
+            >
+              <span class="spec-name">{{ t(`productDetail.toppingsList.${topping.id}`) }}</span>
+              <span class="spec-extra">+¥{{ topping.price }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 甜度选择 -->
+        <div class="spec-section">
+          <h3 class="spec-title">{{ t('productDetail.sweetness') }}</h3>
+          <div class="spec-options">
+            <button
+              v-for="sweet in sweetness"
+              :key="sweet.id"
+              :class="['spec-btn', { active: selectedSweetness === sweet.id }]"
+              @click="selectedSweetness = sweet.id"
+            >
+              {{ t(`productDetail.sweetnessList.${sweet.id}`) }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 数量选择 -->
+        <div class="quantity-section">
+          <span class="quantity-label">{{ t('productDetail.quantity') }}</span>
+          <div class="quantity-controls">
+            <button class="quantity-btn" @click="decreaseQuantity">-</button>
+            <span class="quantity-value">{{ quantity }}</span>
+            <button class="quantity-btn" @click="increaseQuantity">+</button>
+          </div>
+        </div>
+
+        <!-- 总价和加入购物车 -->
+        <div class="action-section">
+          <div class="total-price">
+            <span class="total-label">{{ t('productDetail.totalPrice') }}</span>
+            <span class="total-value">¥{{ totalPrice }}</span>
+          </div>
+          <button class="add-cart-btn" @click="addToCart">
+            {{ t('order.addToCart') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 加载状态 -->
+    <div v-else class="loading-state">
+      <p>{{ t('productDetail.loading') }}</p>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ProductCard from '@/components/ProductCard.vue'
-import { useProductStore } from '@/stores/product'
-import { useCartStore } from '@/stores/cart'
+import { useI18n } from 'vue-i18n'
+import { useUserStore } from '@/stores/user'
+import { storeToRefs } from 'pinia'
 
 const route = useRoute()
 const router = useRouter()
-const productStore = useProductStore()
-const cartStore = useCartStore()
+const { t, locale } = useI18n()
+const userStore = useUserStore()
+const { isLoggedIn } = storeToRefs(userStore)
 
-const product = ref(null)
-const selectedTemp = ref('冷')
-const selectedSweet = ref('标准糖')
+// 模拟产品数据
+const products = [
+  {
+    id: 1,
+    name: '芝士莓莓',
+    nameEn: 'Cheese Berry',
+    desc: '新鲜草莓配芝士奶盖，口感细腻香甜',
+    descEn: 'Fresh strawberries with cheese milk foam',
+    price: 28,
+    category: 'cheese',
+    image: '/images/logo.webp',
+    isNew: true
+  },
+  {
+    id: 2,
+    name: '多肉葡萄',
+    nameEn: 'Juicy Grape',
+    desc: '满杯葡萄果肉，鲜甜多汁',
+    descEn: 'Full cup of grape pulp',
+    price: 26,
+    category: 'fruit',
+    image: '/images/logo.webp',
+    isNew: false
+  }
+]
+
+const productId = parseInt(route.params.id)
+const product = products.find(p => p.id === productId)
+
+// 规格选项
+const sizes = [
+  { id: 'small', extra: -2 },
+  { id: 'medium', extra: 0 },
+  { id: 'large', extra: 3 }
+]
+
+const toppings = [
+  { id: 'pearl', price: 3 },
+  { id: 'coconut', price: 3 },
+  { id: 'pudding', price: 4 }
+]
+
+const sweetness = [
+  { id: 'none' },
+  { id: 'less' },
+  { id: 'normal' },
+  { id: 'more' }
+]
+
+// 选择状态
+const selectedSize = ref('medium')
+const selectedToppings = ref([])
+const selectedSweetness = ref('normal')
 const quantity = ref(1)
 
-const temperatures = ['冷', '热', '温', '去冰']
-const sweetness = ['无糖', '三分糖', '五分糖', '标准糖']
-
-const recommendedProducts = computed(() => {
-  if (!product.value) return []
-  return productStore.products
-    .filter(p => p.id !== product.value.id && p.category === product.value.category)
-    .slice(0, 4)
+// 计算总价
+const totalPrice = computed(() => {
+  if (!product) return 0
+  
+  let price = product.price
+  
+  // 加上杯型差价
+  const size = sizes.find(s => s.id === selectedSize.value)
+  if (size) price += size.extra
+  
+  // 加上配料价格
+  selectedToppings.value.forEach(toppingId => {
+    const topping = toppings.find(t => t.id === toppingId)
+    if (topping) price += topping.price
+  })
+  
+  return price * quantity.value
 })
 
-const increaseQuantity = () => {
+// 切换配料
+function toggleTopping(toppingId) {
+  const index = selectedToppings.value.indexOf(toppingId)
+  if (index > -1) {
+    selectedToppings.value.splice(index, 1)
+  } else {
+    selectedToppings.value.push(toppingId)
+  }
+}
+
+// 增加数量
+function increaseQuantity() {
   quantity.value++
 }
 
-const decreaseQuantity = () => {
+// 减少数量
+function decreaseQuantity() {
   if (quantity.value > 1) {
     quantity.value--
   }
 }
 
-const addToCart = () => {
-  const cartItem = {
-    ...product.value,
-    selectedTemp: selectedTemp.value,
-    selectedSweet: selectedSweet.value,
-    quantity: quantity.value
+// 加入购物车
+function addToCart() {
+  if (!isLoggedIn.value) {
+    if (confirm(t('order.loginRequired'))) {
+      router.push({
+        path: '/login',
+        query: { redirect: route.fullPath }
+      })
+    }
+    return
   }
   
-  for (let i = 0; i < quantity.value; i++) {
-    cartStore.addItem(product.value)
-  }
-  
-  alert(`已添加 ${quantity.value} 杯到购物车`)
+  alert(t('productDetail.addSuccess'))
+  // TODO: 实际添加到购物车逻辑
 }
-
-const buyNow = () => {
-  addToCart()
-  router.push('/checkout')
-}
-
-onMounted(async () => {
-  await productStore.fetchProducts()
-  const productId = parseInt(route.params.id)
-  product.value = productStore.getProductById(productId)
-  
-  if (!product.value) {
-    router.push('/products')
-  }
-})
 </script>
 
 <style lang="scss" scoped>
-.product-detail {
-  padding-top: 100px;
-  padding-bottom: 80px;
+.product-detail-page {
   min-height: 100vh;
+  background-color: #f8f8f8;
+  padding-top: 70px;
+}
 
-  &--loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+.product-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
 
-  &__content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    margin-bottom: 80px;
-
-    @media (max-width: 1024px) {
-      grid-template-columns: 1fr;
-      gap: 40px;
-    }
-  }
-
-  &__image {
-    position: sticky;
-    top: 100px;
-    height: fit-content;
-    
-    img {
-      width: 100%;
-      border-radius: 24px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    }
-  }
-
-  &__info {
-    padding: 20px 0;
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 30px;
   }
 }
 
-.badges {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+.product-image-section {
+  position: relative;
+  background-color: white;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.badge {
-  padding: 6px 16px;
-  font-size: 14px;
-  font-weight: 700;
-  border-radius: 20px;
+.product-image {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
+.product-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: #ff6b00;
   color: white;
+  padding: 6px 16px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
 
-  &--new {
-    background-color: #ff6b00;
-  }
-
-  &--hot {
-    background-color: #e63946;
-  }
+.product-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .product-name {
-  font-size: 42px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0;
   color: #1a1a1a;
-  margin-bottom: 20px;
 }
 
 .product-desc {
-  font-size: 18px;
+  font-size: 16px;
   color: #666;
-  line-height: 1.8;
-  margin-bottom: 32px;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .product-price {
-  display: flex;
-  align-items: baseline;
+  font-size: 36px;
+  font-weight: 600;
   color: #ff6b00;
-  margin-bottom: 40px;
-
-  .currency {
-    font-size: 24px;
-    font-weight: 700;
-    margin-right: 4px;
-  }
-
-  .value {
-    font-size: 48px;
-    font-weight: 700;
-  }
 }
 
-.options {
-  margin-bottom: 32px;
-}
-
-.option-group {
-  margin-bottom: 24px;
-
-  h4 {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 12px;
-  }
-}
-
-.option-buttons {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.option-btn {
-  padding: 10px 24px;
-  font-size: 14px;
-  font-weight: 500;
-  border: 2px solid #e0e0e0;
+.spec-section {
   background-color: white;
-  color: #666;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.spec-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: #1a1a1a;
+}
+
+.spec-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.spec-btn {
+  padding: 10px 16px;
+  border: 1px solid #ddd;
+  background-color: white;
   border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'KaiTi', 'STKaiti', '楷体', 'SimKai', serif;
 
   &:hover {
-    border-color: #ff6b00;
-    color: #ff6b00;
+    border-color: #1a1a1a;
+    background-color: #f8f8f8;
   }
 
   &.active {
-    background-color: #ff6b00;
-    border-color: #ff6b00;
+    border-color: #1a1a1a;
+    background-color: #1a1a1a;
     color: white;
+
+    .spec-extra {
+      color: #ffd700;
+    }
+  }
+
+  .spec-name {
+    font-weight: 500;
+  }
+
+  .spec-extra {
+    font-size: 12px;
+    color: #ff6b00;
   }
 }
 
-.quantity {
-  margin-bottom: 40px;
-
-  h4 {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 12px;
-  }
-}
-
-.quantity-control {
-  display: inline-flex;
+.quantity-section {
+  display: flex;
   align-items: center;
-  gap: 20px;
-  border: 2px solid #e0e0e0;
+  justify-content: space-between;
+  background-color: white;
+  padding: 20px;
   border-radius: 12px;
-  padding: 8px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.quantity-label {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .quantity-btn {
-  width: 32px;
-  height: 32px;
-  background-color: #f5f5f5;
-  border: none;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ddd;
+  background-color: white;
+  border-radius: 50%;
   font-size: 20px;
-  font-weight: 700;
-  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
 
   &:hover {
-    background-color: #ff6b00;
-    color: white;
+    border-color: #1a1a1a;
+    background-color: #f8f8f8;
   }
 }
 
 .quantity-value {
   font-size: 18px;
   font-weight: 600;
-  min-width: 32px;
+  min-width: 30px;
   text-align: center;
 }
 
-.actions {
+.action-section {
   display: flex;
-  gap: 16px;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-
-  button {
-    flex: 1;
-    padding: 18px 40px;
-    font-size: 18px;
-    font-weight: 600;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-}
-
-.btn-add-cart {
+  align-items: center;
+  gap: 20px;
   background-color: white;
-  color: #ff6b00;
-  border: 2px solid #ff6b00 !important;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
 
-  &:hover {
-    background-color: #fff5f0;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(255, 107, 0, 0.2);
+.total-price {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .total-label {
+    font-size: 13px;
+    color: #666;
+  }
+
+  .total-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: #ff6b00;
   }
 }
 
-.btn-buy-now {
-  background-color: #ff6b00;
+.add-cart-btn {
+  flex: 1;
+  padding: 16px;
+  background-color: #1a1a1a;
   color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'KaiTi', 'STKaiti', '楷体', 'SimKai', serif;
 
   &:hover {
-    background-color: #ff8533;
+    background-color: #000;
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(255, 107, 0, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 }
 
-.recommendations {
-  margin-top: 80px;
-  padding-top: 80px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.section-title {
-  font-size: 36px;
-  font-weight: 700;
+.loading-state {
   text-align: center;
-  margin-bottom: 48px;
-  color: #1a1a1a;
-}
-
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 32px;
+  padding: 80px 20px;
+  font-size: 16px;
+  color: #999;
 }
 </style>

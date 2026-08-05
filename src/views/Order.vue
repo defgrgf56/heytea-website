@@ -28,6 +28,7 @@
           v-for="product in filteredProducts"
           :key="product.id"
           class="product-card"
+          @click="viewDetail(product.id)"
         >
           <div class="product-image">
             <img :src="product.image" :alt="product.name" />
@@ -40,7 +41,7 @@
             <p class="product-desc">{{ locale === 'zh-CN' ? product.desc : product.descEn }}</p>
             <div class="product-footer">
               <span class="product-price">¥{{ product.price }}</span>
-              <button class="add-btn" @click="addToCart(product)">
+              <button class="add-btn" @click.stop="addToCart(product)">
                 {{ t('order.addToCart') }}
               </button>
             </div>
@@ -103,11 +104,13 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
+import { useOrderStore } from '@/stores/order'
 import { storeToRefs } from 'pinia'
 
 const router = useRouter()
 const { t, locale } = useI18n()
 const userStore = useUserStore()
+const orderStore = useOrderStore()
 const { isLoggedIn } = storeToRefs(userStore)
 
 // 分类
@@ -235,6 +238,11 @@ const cartTotal = computed(() => {
   return cartItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0)
 })
 
+// 查看详情
+function viewDetail(productId) {
+  router.push(`/product/${productId}`)
+}
+
 // 添加到购物车
 function addToCart(product) {
   // 检查是否已登录
@@ -288,9 +296,18 @@ function checkout() {
     return
   }
   
+  // 创建订单
+  const order = orderStore.createOrder({
+    items: cartItems.value,
+    totalAmount: cartTotal.value
+  })
+  
   alert(t('order.checkoutSuccess'))
   cartItems.value = []
   showCart.value = false
+  
+  // 跳转到订单列表
+  router.push('/orders')
 }
 </script>
 

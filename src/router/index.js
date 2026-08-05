@@ -44,6 +44,23 @@ const routes = [
       requiresGuest: true // 已登录用户不能访问登录页
     }
   },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('../views/Profile.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/orders',
+    name: 'Orders',
+    component: () => import('../views/Orders.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/product/:id',
+    name: 'ProductDetail',
+    component: () => import('../views/ProductDetail.vue')
+  },
   // 示例：需要登录才能访问的页面
   // {
   //   path: '/profile',

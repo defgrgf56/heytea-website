@@ -168,9 +168,7 @@ const selectLanguage = (lang) => {
 
 const handleProfile = () => {
   isUserMenuOpen.value = false
-  // TODO: 跳转到个人中心页面
-  console.log('打开个人中心')
-  // router.push('/profile')
+  router.push('/profile')
 }
 
 const handleLogout = async () => {

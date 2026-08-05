@@ -6,7 +6,7 @@
         <img src="/images/logo.webp" alt="HEYTEA 喜茶" />
       </router-link>
 
-      <!-- 导航菜单 -->
+      <!-- 导航菜单 + 登录/用户 -->
       <nav class="header__nav">
         <router-link 
           v-for="item in navItems" 
@@ -17,11 +17,8 @@
         >
           {{ t(item.name) }}
         </router-link>
-      </nav>
-
-      <!-- 右侧功能区 -->
-      <div class="header__actions">
-        <!-- 用户菜单 -->
+        
+        <!-- 用户菜单（已登录） -->
         <div v-if="isLoggedIn" class="header__user-wrapper">
           <button class="header__user" @click="toggleUserMenu">
             <img :src="userAvatar" alt="用户头像" class="user-avatar" />
@@ -51,11 +48,14 @@
           </transition>
         </div>
 
-        <!-- 登录按钮（未登录时） -->
-        <router-link v-else to="/login" class="header__login-btn">
+        <!-- 登录按钮（未登录） -->
+        <router-link v-else to="/login" class="header__nav-item header__login-link">
           {{ t('login.loginBtn') }}
         </router-link>
+      </nav>
 
+      <!-- 右侧功能区（语言切换） -->
+      <div class="header__actions">
         <div class="header__language-wrapper">
           <button class="header__language" @click="toggleLanguageMenu">
             <span class="icon-globe">🌐</span>
@@ -269,6 +269,7 @@ onUnmounted(() => {
     gap: 60px;
     margin-left: auto;
     margin-right: 40px;
+    align-items: center;
     
     @media (max-width: 1024px) {
       gap: 40px;
@@ -288,6 +289,7 @@ onUnmounted(() => {
     transition: all 0.3s ease;
     position: relative;
     padding: 8px 0;
+    white-space: nowrap;
 
     &:hover {
       color: #000;
@@ -310,6 +312,17 @@ onUnmounted(() => {
     }
   }
 
+  // 登录链接样式（作为导航项）
+  &__login-link {
+    color: #1a1a1a;
+    font-weight: 500;
+    
+    &:hover {
+      color: #000;
+      font-weight: 600;
+    }
+  }
+
   &__actions {
     display: flex;
     align-items: center;
@@ -320,22 +333,8 @@ onUnmounted(() => {
     }
   }
 
-  &__login-btn {
-    padding: 8px 20px;
-    background-color: #1a1a1a;
-    color: #ffffff;
-    text-decoration: none;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: #000;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    }
-  }
+  // 移除独立的登录按钮样式，改用导航项样式
+  // &__login-btn { ... } 已删除
 
   &__user-wrapper {
     position: relative;

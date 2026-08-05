@@ -100,9 +100,15 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useUserStore } from '@/stores/user'
+import { storeToRefs } from 'pinia'
 
+const router = useRouter()
 const { t, locale } = useI18n()
+const userStore = useUserStore()
+const { isLoggedIn } = storeToRefs(userStore)
 
 // 分类
 const categories = [
@@ -231,6 +237,18 @@ const cartTotal = computed(() => {
 
 // 添加到购物车
 function addToCart(product) {
+  // 检查是否已登录
+  if (!isLoggedIn.value) {
+    if (confirm(t('order.loginRequired'))) {
+      // 跳转到登录页，并保存当前页面路径用于登录后返回
+      router.push({
+        path: '/login',
+        query: { redirect: '/order' }
+      })
+    }
+    return
+  }
+  
   const existingItem = cartItems.value.find(item => item.id === product.id)
   if (existingItem) {
     existingItem.quantity++
@@ -262,6 +280,14 @@ function decreaseQuantity(item) {
 // 结算
 function checkout() {
   if (cartItems.value.length === 0) return
+  
+  // 再次确认登录状态
+  if (!isLoggedIn.value) {
+    alert(t('order.loginRequired'))
+    router.push('/login')
+    return
+  }
+  
   alert(t('order.checkoutSuccess'))
   cartItems.value = []
   showCart.value = false

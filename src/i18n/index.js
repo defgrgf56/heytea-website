@@ -128,7 +128,8 @@ const messages = {
       myCart: '我的购物车',
       total: '总计',
       checkout: '去结算',
-      checkoutSuccess: '下单成功！感谢您的购买'
+      checkoutSuccess: '下单成功！感谢您的购买',
+      loginRequired: '请先登录后再加入购物车，是否现在登录？'
     }
   },
   'en': {
@@ -258,7 +259,8 @@ const messages = {
       myCart: 'My Cart',
       total: 'Total',
       checkout: 'Checkout',
-      checkoutSuccess: 'Order placed successfully! Thank you for your purchase'
+      checkoutSuccess: 'Order placed successfully! Thank you for your purchase',
+      loginRequired: 'Please login first to add items to cart. Login now?'
     }
   }
 }

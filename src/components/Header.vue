@@ -132,6 +132,7 @@ const isLanguageMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
 
 const navItems = [
+  { name: 'nav.order', path: '/order' },
   { name: 'nav.brandStory', path: '/about' },
   { name: 'nav.products', path: '/products' },
   { name: 'nav.stores', path: '/stores' },

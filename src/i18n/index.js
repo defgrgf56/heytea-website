@@ -3,6 +3,7 @@ import { createI18n } from 'vue-i18n'
 const messages = {
   'zh-CN': {
     nav: {
+      order: '点餐',
       brandStory: '品牌故事',
       products: '产品',
       stores: '门店',
@@ -110,10 +111,29 @@ const messages = {
       networkError: '网络错误，请稍后重试',
       profile: '个人中心',
       logout: '退出登录'
+    },
+    order: {
+      title: '在线点餐',
+      subtitle: '新鲜现制，即刻享受',
+      categories: {
+        all: '全部',
+        tea: '茶饮',
+        fruit: '水果茶',
+        cheese: '芝士',
+        coffee: '咖啡'
+      },
+      new: '新品',
+      addToCart: '加入购物车',
+      noProducts: '暂无商品',
+      myCart: '我的购物车',
+      total: '总计',
+      checkout: '去结算',
+      checkoutSuccess: '下单成功！感谢您的购买'
     }
   },
   'en': {
     nav: {
+      order: 'Order',
       brandStory: 'Brand Story',
       products: 'Products',
       stores: 'Stores',
@@ -221,6 +241,24 @@ const messages = {
       networkError: 'Network error, please try again later',
       profile: 'Profile',
       logout: 'Logout'
+    },
+    order: {
+      title: 'Order Online',
+      subtitle: 'Fresh made, enjoy now',
+      categories: {
+        all: 'All',
+        tea: 'Tea',
+        fruit: 'Fruit Tea',
+        cheese: 'Cheese',
+        coffee: 'Coffee'
+      },
+      new: 'NEW',
+      addToCart: 'Add to Cart',
+      noProducts: 'No products available',
+      myCart: 'My Cart',
+      total: 'Total',
+      checkout: 'Checkout',
+      checkoutSuccess: 'Order placed successfully! Thank you for your purchase'
     }
   }
 }

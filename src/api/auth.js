@@ -3,8 +3,11 @@ import { api } from './index'
 // 🎭 Mock 模式开关（设置为 true 使用虚拟数据，false 连接真实后端）
 const USE_MOCK = true
 
-// 虚拟用户数据库
-const mockUsers = [
+// LocalStorage 存储键
+const USERS_STORAGE_KEY = 'heytea_mock_users'
+
+// 虚拟用户数据库（初始预设用户）
+const defaultMockUsers = [
   {
     id: 1,
     username: 'admin',
@@ -31,8 +34,41 @@ const mockUsers = [
   }
 ]
 
-// 已注册用户列表（用于注册时检查重复）
-const registeredUsers = [...mockUsers]
+/**
+ * 从 localStorage 加载用户列表
+ */
+function loadUsersFromStorage() {
+  try {
+    const storedUsers = localStorage.getItem(USERS_STORAGE_KEY)
+    if (storedUsers) {
+      const users = JSON.parse(storedUsers)
+      console.log('✅ 从本地加载用户数据:', users.length, '个用户')
+      return users
+    }
+  } catch (error) {
+    console.error('加载用户数据失败:', error)
+  }
+  
+  // 如果没有存储数据，返回默认用户并保存
+  console.log('💾 初始化默认用户数据')
+  saveUsersToStorage(defaultMockUsers)
+  return [...defaultMockUsers]
+}
+
+/**
+ * 保存用户列表到 localStorage
+ */
+function saveUsersToStorage(users) {
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
+    console.log('💾 用户数据已保存:', users.length, '个用户')
+  } catch (error) {
+    console.error('保存用户数据失败:', error)
+  }
+}
+
+// 已注册用户列表（从 localStorage 加载，包含持久化数据）
+let registeredUsers = loadUsersFromStorage()
 
 /**
  * 模拟网络延迟
@@ -101,10 +137,15 @@ async function mockRegister(userData) {
     password: userData.password,
     email: userData.email,
     nickname: userData.username,
-    avatar: '/images/logo.webp'
+    avatar: '/images/logo.webp',
+    createdAt: new Date().toISOString()
   }
   
+  // 添加到用户列表
   registeredUsers.push(newUser)
+  
+  // 💾 持久化到 localStorage
+  saveUsersToStorage(registeredUsers)
   
   const { password, ...userInfo } = newUser
   return {
@@ -171,6 +212,39 @@ async function mockRefreshToken() {
     }
   }
 }
+
+/**
+ * 重置用户数据（开发测试用）
+ * 在浏览器控制台执行: window.resetMockUsers()
+ */
+window.resetMockUsers = function() {
+  localStorage.removeItem(USERS_STORAGE_KEY)
+  registeredUsers = [...defaultMockUsers]
+  saveUsersToStorage(registeredUsers)
+  console.log('✅ 用户数据已重置为默认状态')
+  console.log('默认账号: admin/123456, zhangsan/123456, lisi/123456')
+}
+
+/**
+ * 查看所有用户（开发测试用）
+ * 在浏览器控制台执行: window.showMockUsers()
+ */
+window.showMockUsers = function() {
+  console.log('📋 当前注册用户列表:')
+  console.table(registeredUsers.map(u => ({
+    ID: u.id,
+    用户名: u.username,
+    邮箱: u.email,
+    昵称: u.nickname,
+    注册时间: u.createdAt || '预设用户'
+  })))
+}
+
+// 启动时显示用户数据状态
+console.log('🎭 Mock 模式已启用')
+console.log(`📊 当前共有 ${registeredUsers.length} 个注册用户`)
+console.log('💡 开发工具: window.resetMockUsers() - 重置用户数据')
+console.log('💡 开发工具: window.showMockUsers() - 查看所有用户')
 
 /**
  * 用户认证相关 API

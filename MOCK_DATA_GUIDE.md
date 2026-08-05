@@ -4,6 +4,11 @@
 
 登录功能现在支持**虚拟数据模式**，无需后端服务器即可测试完整的登录/注册流程！
 
+**🎉 新功能：用户数据持久化**
+- ✅ 新注册的用户会自动保存到 localStorage
+- ✅ 刷新页面、关闭浏览器后数据不丢失
+- ✅ 注册后的账号可以一直使用
+
 ---
 
 ## 🔧 模式切换
@@ -132,21 +137,70 @@ VITE_API_BASE_URL=http://your-backend-server.com/api
 
 ## 🔍 数据持久化
 
-### 存储位置
-虚拟数据存储在浏览器的 **localStorage** 中：
+### ✨ 持久化功能
+所有注册的用户数据会自动保存到浏览器的 **localStorage** 中：
 
+- ✅ 刷新页面不丢失
+- ✅ 关闭浏览器后重新打开仍然存在
+- ✅ 新注册的用户永久保存（直到手动清除）
+
+### 存储位置
 ```javascript
+// 存储键
+localStorage.getItem('heytea_mock_users')
+
 // 查看存储的数据（浏览器控制台）
-console.log(localStorage.getItem('token'))
-console.log(localStorage.getItem('user'))
+console.log(localStorage.getItem('heytea_mock_users'))
 ```
 
-### 清除数据
-```javascript
-// 方法1: 点击"退出登录"按钮
+### 🛠️ 开发工具
 
-// 方法2: 在浏览器控制台执行
+#### 1. 查看所有用户
+在浏览器控制台（F12）执行：
+```javascript
+window.showMockUsers()
+```
+会显示所有注册用户的表格，包括：
+- ID
+- 用户名
+- 邮箱
+- 昵称
+- 注册时间
+
+#### 2. 重置用户数据
+如需清除所有新注册的用户，恢复为默认 3 个账号：
+```javascript
+window.resetMockUsers()
+```
+执行后会：
+- 删除所有新注册用户
+- 恢复为默认 3 个账号（admin, zhangsan, lisi）
+- 清除相关 localStorage 数据
+
+### 清除数据的方法
+
+**方法 1: 使用开发工具**
+```javascript
+// 浏览器控制台执行
+window.resetMockUsers()
+```
+
+**方法 2: 清除 localStorage**
+```javascript
+// 只清除用户数据
+localStorage.removeItem('heytea_mock_users')
+
+// 清除所有数据（包括登录状态）
 localStorage.clear()
+
+// 刷新页面
+location.reload()
+```
+
+**方法 3: 浏览器开发者工具**
+```
+F12 → Application → Local Storage → 
+找到 heytea_mock_users → 右键删除
 ```
 
 ---
@@ -349,9 +403,10 @@ npm run dev
 
 ## 📝 注意事项
 
-1. **虚拟数据仅存在于浏览器**
-   - 刷新页面后，新注册的用户会丢失（除非也加到 mockUsers 中）
-   - 关闭浏览器后，所有数据重置
+1. **数据持久化**
+   - ✅ 新注册的用户会永久保存在 localStorage
+   - ✅ 刷新页面、关闭浏览器后数据仍然存在
+   - ⚠️ 清除浏览器数据或使用隐私模式会丢失
 
 2. **开发环境使用**
    - Mock 模式仅用于开发测试
@@ -365,28 +420,49 @@ npm run dev
    - Mock 延迟可以调整
    - 真实网络延迟取决于后端响应速度
 
+5. **数据管理**
+   - 使用 `window.showMockUsers()` 查看所有用户
+   - 使用 `window.resetMockUsers()` 重置为默认状态
+
 ---
 
 ## 🆘 常见问题
 
-### Q: 注册的新用户刷新后消失？
-A: 虚拟数据存在内存中，刷新页面会重置。如需持久化，请将新用户添加到 `mockUsers` 数组。
+### Q: 注册的新用户刷新后还在吗？
+A: ✅ **是的！** 新用户数据已持久化到 localStorage，刷新页面或重启浏览器都不会丢失。
+
+### Q: 如何查看当前有多少注册用户？
+A: 打开浏览器控制台（F12），输入：
+```javascript
+window.showMockUsers()
+```
 
 ### Q: 如何查看当前登录状态？
 A: 打开浏览器控制台，输入：
 ```javascript
 console.log(localStorage.getItem('user'))
+console.log(localStorage.getItem('token'))
 ```
 
-### Q: 如何重置所有数据？
+### Q: 如何重置所有用户数据？
 A: 浏览器控制台执行：
 ```javascript
-localStorage.clear()
-location.reload()
+window.resetMockUsers()
 ```
+这会删除所有新注册用户，恢复为默认的 3 个账号。
 
 ### Q: 登录后 Header 没有显示用户信息？
 A: 检查 `src/components/Header.vue` 是否调用了 `userStore.restoreUserFromStorage()`
+
+### Q: 为什么有些新用户无法登录？
+A: 可能是数据损坏，尝试重置用户数据：
+```javascript
+window.resetMockUsers()
+```
+然后重新注册。
+
+### Q: 数据会占用多少空间？
+A: 每个用户约 200-300 字节，100 个用户约 20-30KB，localStorage 限制通常为 5-10MB，完全够用。
 
 ---
 

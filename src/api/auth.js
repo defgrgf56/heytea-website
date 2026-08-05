@@ -47,7 +47,8 @@ function mockDelay(ms = 800) {
 async function mockLogin(credentials) {
   await mockDelay()
   
-  const user = mockUsers.find(
+  // 从 registeredUsers 查找（包含所有用户，包括新注册的）
+  const user = registeredUsers.find(
     u => u.username === credentials.username && u.password === credentials.password
   )
   
@@ -138,7 +139,7 @@ async function mockGetCurrentUser() {
   
   // 模拟从 token 解析用户 ID
   const userId = parseInt(token.split('-')[2]) || 1
-  const user = mockUsers.find(u => u.id === userId)
+  const user = registeredUsers.find(u => u.id === userId)
   
   if (user) {
     const { password, ...userInfo } = user

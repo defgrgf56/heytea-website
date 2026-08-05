@@ -85,6 +85,31 @@ const messages = {
         singapore: '新加坡',
         uk: '英国'
       }
+    },
+    login: {
+      title: '登录喜茶',
+      registerTitle: '注册账号',
+      username: '用户名',
+      usernamePlaceholder: '请输入用户名',
+      email: '邮箱',
+      emailPlaceholder: '请输入邮箱地址',
+      password: '密码',
+      passwordPlaceholder: '请输入密码（至少6位）',
+      confirmPassword: '确认密码',
+      confirmPasswordPlaceholder: '请再次输入密码',
+      loginBtn: '登录',
+      registerBtn: '注册',
+      loading: '处理中...',
+      hasAccount: '已有账号？立即登录',
+      noAccount: '还没有账号？立即注册',
+      backHome: '← 返回首页',
+      passwordNotMatch: '两次输入的密码不一致',
+      registerSuccess: '注册成功！请登录',
+      registerFailed: '注册失败，请重试',
+      loginFailed: '登录失败，请检查用户名和密码',
+      networkError: '网络错误，请稍后重试',
+      profile: '个人中心',
+      logout: '退出登录'
     }
   },
   'en': {
@@ -171,6 +196,31 @@ const messages = {
         singapore: 'Singapore',
         uk: 'UK'
       }
+    },
+    login: {
+      title: 'Login to HEYTEA',
+      registerTitle: 'Create Account',
+      username: 'Username',
+      usernamePlaceholder: 'Enter your username',
+      email: 'Email',
+      emailPlaceholder: 'Enter your email address',
+      password: 'Password',
+      passwordPlaceholder: 'Enter password (at least 6 characters)',
+      confirmPassword: 'Confirm Password',
+      confirmPasswordPlaceholder: 'Re-enter password',
+      loginBtn: 'Login',
+      registerBtn: 'Register',
+      loading: 'Processing...',
+      hasAccount: 'Already have an account? Login now',
+      noAccount: 'Don\'t have an account? Register now',
+      backHome: '← Back to Home',
+      passwordNotMatch: 'Passwords do not match',
+      registerSuccess: 'Registration successful! Please login',
+      registerFailed: 'Registration failed, please try again',
+      loginFailed: 'Login failed, please check username and password',
+      networkError: 'Network error, please try again later',
+      profile: 'Profile',
+      logout: 'Logout'
     }
   }
 }

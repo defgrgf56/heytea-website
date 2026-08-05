@@ -21,6 +21,41 @@
 
       <!-- 右侧功能区 -->
       <div class="header__actions">
+        <!-- 用户菜单 -->
+        <div v-if="isLoggedIn" class="header__user-wrapper">
+          <button class="header__user" @click="toggleUserMenu">
+            <img :src="userAvatar" alt="用户头像" class="user-avatar" />
+            <span class="user-name">{{ userName }}</span>
+          </button>
+          
+          <!-- 用户下拉菜单 -->
+          <transition name="fade">
+            <div v-if="isUserMenuOpen" class="user-menu">
+              <div class="user-menu__info">
+                <img :src="userAvatar" alt="用户头像" class="user-menu__avatar" />
+                <div class="user-menu__details">
+                  <div class="user-menu__name">{{ userName }}</div>
+                  <div class="user-menu__email">{{ userEmail }}</div>
+                </div>
+              </div>
+              <div class="user-menu__divider"></div>
+              <button class="user-menu__item" @click="handleProfile">
+                <span class="icon">👤</span>
+                <span>{{ t('login.profile') }}</span>
+              </button>
+              <button class="user-menu__item" @click="handleLogout">
+                <span class="icon">🚪</span>
+                <span>{{ t('login.logout') }}</span>
+              </button>
+            </div>
+          </transition>
+        </div>
+
+        <!-- 登录按钮（未登录时） -->
+        <router-link v-else to="/login" class="header__login-btn">
+          {{ t('login.loginBtn') }}
+        </router-link>
+
         <div class="header__language-wrapper">
           <button class="header__language" @click="toggleLanguageMenu">
             <span class="icon-globe">🌐</span>
@@ -75,19 +110,26 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useCartStore } from '@/stores/cart'
+import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
 
+const router = useRouter()
 const { locale, t } = useI18n()
 
 const cartStore = useCartStore()
 const { cartCount } = storeToRefs(cartStore)
 
+const userStore = useUserStore()
+const { isLoggedIn, userName, userAvatar } = storeToRefs(userStore)
+
 const isScrolled = ref(false)
 const isMobileMenuOpen = ref(false)
 const isLanguageMenuOpen = ref(false)
+const isUserMenuOpen = ref(false)
 
 const navItems = [
   { name: 'nav.brandStory', path: '/about' },
@@ -98,8 +140,17 @@ const navItems = [
 
 const currentLang = ref('简体中文')
 
+// 用户邮箱（从 store 获取）
+const userEmail = computed(() => userStore.user?.email || '')
+
 const toggleLanguageMenu = () => {
   isLanguageMenuOpen.value = !isLanguageMenuOpen.value
+  isUserMenuOpen.value = false
+}
+
+const toggleUserMenu = () => {
+  isUserMenuOpen.value = !isUserMenuOpen.value
+  isLanguageMenuOpen.value = false
 }
 
 const selectLanguage = (lang) => {
@@ -112,6 +163,19 @@ const selectLanguage = (lang) => {
   }
   isLanguageMenuOpen.value = false
   console.log('切换语言:', lang, locale.value)
+}
+
+const handleProfile = () => {
+  isUserMenuOpen.value = false
+  // TODO: 跳转到个人中心页面
+  console.log('打开个人中心')
+  // router.push('/profile')
+}
+
+const handleLogout = async () => {
+  isUserMenuOpen.value = false
+  await userStore.logout()
+  router.push('/')
 }
 
 const handleScroll = () => {
@@ -138,12 +202,24 @@ const closeMobileMenu = () => {
   isMobileMenuOpen.value = false
 }
 
+// 点击页面其他地方关闭菜单
+const handleClickOutside = (e) => {
+  if (!e.target.closest('.header__user-wrapper') && !e.target.closest('.header__language-wrapper')) {
+    isUserMenuOpen.value = false
+    isLanguageMenuOpen.value = false
+  }
+}
+
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
+  document.addEventListener('click', handleClickOutside)
+  // 恢复用户登录状态
+  userStore.restoreUserFromStorage()
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -237,10 +313,148 @@ onUnmounted(() => {
   &__actions {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
 
     @media (max-width: 768px) {
       display: none;
+    }
+  }
+
+  &__login-btn {
+    padding: 8px 20px;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background-color: #000;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  &__user-wrapper {
+    position: relative;
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background-color: #f5f5f5;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #f0f0f0;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1a1a1a;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .user-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    min-width: 240px;
+    z-index: 100;
+
+    &__info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background-color: #f8f8f8;
+    }
+
+    &__avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #ffffff;
+    }
+
+    &__details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    &__name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a1a;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &__email {
+      font-size: 13px;
+      color: #666;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+
+    &__divider {
+      height: 1px;
+      background-color: #f0f0f0;
+      margin: 4px 0;
+    }
+
+    &__item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      text-align: left;
+      font-size: 14px;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: #f5f5f5;
+      }
+
+      .icon {
+        font-size: 18px;
+        width: 20px;
+        text-align: center;
+      }
     }
   }
 

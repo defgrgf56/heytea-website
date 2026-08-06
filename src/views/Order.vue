@@ -67,12 +67,6 @@
         <p>{{ t('order.noProducts') }}</p>
       </div>
     </div>
-
-    <!-- 购物车浮动按钮（仅移动端显示） -->
-    <div class="cart-float-mobile" v-if="cartStore.totalItems > 0" @click="scrollToTop">
-      <span class="cart-icon">🛒</span>
-      <span class="cart-count">{{ cartStore.totalItems }}</span>
-    </div>
   </div>
 </template>
 
@@ -228,11 +222,6 @@ function handleSearch() {
 // 清除搜索
 function clearSearch() {
   searchQuery.value = ''
-}
-
-// 滚动到顶部（移动端点击购物车按钮）
-function scrollToTop() {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 // 查看详情
@@ -499,54 +488,6 @@ async function addToCart(product) {
   font-size: 16px;
 }
 
-// 购物车浮动按钮（仅移动端显示）
-.cart-float-mobile {
-  position: fixed;
-  bottom: 40px;
-  right: 40px;
-  width: 60px;
-  height: 60px;
-  background-color: #1a1a1a;
-  border-radius: 50%;
-  display: none; // 默认隐藏
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-  z-index: 100;
-
-  // 仅在移动端显示
-  @media (max-width: 768px) {
-    display: flex;
-  }
-
-  &:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-  }
-
-  .cart-icon {
-    font-size: 24px;
-  }
-
-  .cart-count {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 24px;
-    height: 24px;
-    background-color: #ff6b00;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 600;
-  }
-}
-
 @media (max-width: 768px) {
   .banner-title {
     font-size: 32px;
@@ -571,17 +512,6 @@ async function addToCart(product) {
 
   .product-desc {
     font-size: 13px;
-  }
-
-  .cart-float-mobile {
-    bottom: 20px;
-    right: 20px;
-    width: 50px;
-    height: 50px;
-
-    .cart-icon {
-      font-size: 20px;
-    }
   }
 }
 </style>

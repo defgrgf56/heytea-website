@@ -1,7 +1,7 @@
 import { api } from './index'
 
-// 🎭 Mock 模式开关
-const USE_MOCK = true
+// 🎭 Mock 模式开关（从环境变量读取）
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 /**
  * 模拟网络延迟

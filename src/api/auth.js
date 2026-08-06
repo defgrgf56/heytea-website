@@ -1,7 +1,13 @@
 import { api } from './index'
+import { encryptPayload } from '@/utils/rsa'
 
-// 🎭 Mock 模式开关（设置为 true 使用虚拟数据，false 连接真实后端）
-const USE_MOCK = true
+// 🎭 Mock 模式开关（从环境变量读取，也可以手动设置）
+// 方式1: 从环境变量读取（推荐）
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
+// 方式2: 手动设置（调试时使用）
+// const USE_MOCK = true
+
+console.log(`🔧 认证 API 模式: ${USE_MOCK ? 'Mock' : '真实后端'}`)
 
 // LocalStorage 存储键
 const USERS_STORAGE_KEY = 'heytea_mock_users'
@@ -261,12 +267,60 @@ export const authApi = {
    * - 用户名: admin, 密码: 123456
    * - 用户名: zhangsan, 密码: 123456
    * - 用户名: lisi, 密码: 123456
+   * 
+   * 测试账号（真实后端）：
+   * - 管理员: admin / 123456
+   * - 普通用户: user / 123456
    */
-  login(credentials) {
+  async login(credentials) {
     if (USE_MOCK) {
       return mockLogin(credentials)
     }
-    return api.post('/auth/login', credentials)
+    
+    // 真实后端 API：使用 RSA 加密登录
+    try {
+      // 1. 获取 Challenge
+      const challenge = await api.get('/auth/challenge?purpose=login')
+      
+      // 2. 加密登录数据
+      const payload = await encryptPayload(challenge.publicKey, {
+        purpose: 'login',
+        challengeId: challenge.challengeId,
+        nonce: challenge.nonce,
+        identifier: credentials.username, // 后端使用 identifier 字段
+        password: credentials.password
+      })
+      
+      // 3. 提交加密后的登录请求
+      const response = await api.post('/auth/login', {
+        credential: {
+          challengeId: challenge.challengeId,
+          payload
+        }
+      })
+      
+      // 4. 转换响应格式，兼容前端
+      return {
+        success: true,
+        data: {
+          token: response.token,
+          user: {
+            id: response.user.id,
+            username: response.user.username,
+            email: response.user.email,
+            nickname: response.user.nickname || response.user.username,
+            avatar: response.user.avatar || '/images/logo.webp',
+            role: response.user.role,
+            roles: response.user.roles,
+            permissions: response.user.permissions
+          }
+        },
+        message: '登录成功'
+      }
+    } catch (error) {
+      console.error('登录失败:', error)
+      throw error
+    }
   },
 
   /**
@@ -275,20 +329,55 @@ export const authApi = {
    * @param {string} userData.username - 用户名
    * @param {string} userData.email - 邮箱
    * @param {string} userData.password - 密码
+   * @param {string} userData.nickname - 昵称（可选）
    * @returns {Promise<Object>}
    */
-  register(userData) {
+  async register(userData) {
     if (USE_MOCK) {
       return mockRegister(userData)
     }
-    return api.post('/auth/register', userData)
+    
+    // 真实后端 API：使用 RSA 加密注册
+    try {
+      // 1. 获取 Challenge
+      const challenge = await api.get('/auth/challenge?purpose=register')
+      
+      // 2. 加密注册数据
+      const payload = await encryptPayload(challenge.publicKey, {
+        purpose: 'register',
+        challengeId: challenge.challengeId,
+        nonce: challenge.nonce,
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        nickname: userData.nickname || userData.username
+      })
+      
+      // 3. 提交加密后的注册请求
+      const response = await api.post('/auth/register', {
+        credential: {
+          challengeId: challenge.challengeId,
+          payload
+        }
+      })
+      
+      // 4. 返回成功响应
+      return {
+        success: true,
+        data: { user: response },
+        message: '注册成功，请登录'
+      }
+    } catch (error) {
+      console.error('注册失败:', error)
+      throw error
+    }
   },
 
   /**
    * 用户退出登录
    * @returns {Promise<Object>}
    */
-  logout() {
+  async logout() {
     if (USE_MOCK) {
       return mockLogout()
     }
@@ -299,21 +388,50 @@ export const authApi = {
    * 获取当前用户信息
    * @returns {Promise<Object>}
    */
-  getCurrentUser() {
+  async getCurrentUser() {
     if (USE_MOCK) {
       return mockGetCurrentUser()
     }
-    return api.get('/auth/me')
+    
+    // 真实后端 API
+    try {
+      const user = await api.get('/auth/me')
+      
+      return {
+        success: true,
+        data: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          nickname: user.nickname || user.username,
+          avatar: user.avatar || '/images/logo.webp',
+          role: user.role,
+          roles: user.roles,
+          permissions: user.permissions
+        }
+      }
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+      throw error
+    }
   },
 
   /**
    * 刷新 token
    * @returns {Promise<Object>}
    */
-  refreshToken() {
+  async refreshToken() {
     if (USE_MOCK) {
       return mockRefreshToken()
     }
-    return api.post('/auth/refresh')
+    
+    // 真实后端 API
+    const response = await api.post('/auth/refresh')
+    return {
+      success: true,
+      data: {
+        token: response.token
+      }
+    }
   }
 }

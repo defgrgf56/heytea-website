@@ -1,7 +1,7 @@
 import { api } from './index'
 
-// 🎭 Mock 模式开关（设置为 true 使用虚拟数据，false 连接真实后端）
-const USE_MOCK = true
+// 🎭 Mock 模式开关（从环境变量读取）
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 // 虚拟商品数据库
 const mockProducts = [
@@ -232,13 +232,54 @@ export const productApi = {
    * @param {number} params.pageSize - 每页数量
    * @returns {Promise<Object>}
    */
-  getProducts(params) {
+  async getProducts(params) {
     if (USE_MOCK) {
       return mockGetProducts(params)
     }
-    // 真实 API 调用
-    const queryString = new URLSearchParams(params).toString()
-    return api.get(`/products?${queryString}`)
+    
+    // 真实 API 调用 - 适配后端参数
+    const backendParams = {
+      page: params.page || 1,
+      pageSize: params.pageSize || 12,
+      keyword: params.search, // 搜索关键词
+      categoryCode: params.category === 'all' ? undefined : params.category // 分类编码
+    }
+    
+    const queryString = new URLSearchParams(
+      Object.entries(backendParams).filter(([_, v]) => v !== undefined)
+    ).toString()
+    
+    const response = await api.get(`/products?${queryString}`)
+    
+    // 适配响应格式
+    return {
+      success: true,
+      data: {
+        items: response.list.map(product => ({
+          id: product.id,
+          name: product.name,
+          nameEn: product.nameEn,
+          desc: product.description || product.desc,
+          descEn: product.descriptionEn || product.descEn,
+          price: product.price,
+          category: product.categoryCode,
+          image: product.imageUrl || product.image,
+          isNew: product.isNew,
+          isHot: product.isHot,
+          stock: product.stock,
+          status: product.status,
+          // 规格信息（详情页可能需要）
+          sizes: product.specs?.sizes || ['小杯', '中杯', '大杯'],
+          toppings: product.specs?.toppings || ['珍珠', '椰果', '芋圆', '红豆'],
+          sweetness: product.specs?.sweetness || ['标准糖', '少糖', '无糖']
+        })),
+        total: response.total,
+        page: response.page,
+        pageSize: response.pageSize,
+        totalPages: Math.ceil(response.total / response.pageSize)
+      },
+      message: '获取商品列表成功'
+    }
   },
 
   /**
@@ -246,12 +287,49 @@ export const productApi = {
    * @param {number} productId - 商品 ID
    * @returns {Promise<Object>}
    */
-  getProductDetail(productId) {
+  async getProductDetail(productId) {
     if (USE_MOCK) {
       return mockGetProductDetail(productId)
     }
+    
     // 真实 API 调用
-    return api.get(`/products/${productId}`)
+    const product = await api.get(`/products/${productId}`)
+    
+    // 适配响应格式
+    return {
+      success: true,
+      data: {
+        id: product.id,
+        name: product.name,
+        nameEn: product.nameEn,
+        desc: product.description || product.desc,
+        descEn: product.descriptionEn || product.descEn,
+        price: product.price,
+        category: product.categoryCode,
+        image: product.imageUrl || product.image,
+        isNew: product.isNew,
+        isHot: product.isHot,
+        stock: product.stock,
+        status: product.status,
+        // 规格信息（从 specs 字段提取）
+        sizes: product.specs?.sizes || [
+          { code: 'small', name: '小杯', nameEn: 'Small', extraPrice: -2 },
+          { code: 'medium', name: '中杯', nameEn: 'Medium', extraPrice: 0 },
+          { code: 'large', name: '大杯', nameEn: 'Large', extraPrice: 3 }
+        ],
+        toppings: product.specs?.toppings || [
+          { code: 'pearl', name: '珍珠', nameEn: 'Pearl', price: 3 },
+          { code: 'coconut', name: '椰果', nameEn: 'Coconut Jelly', price: 3 },
+          { code: 'pudding', name: '布丁', nameEn: 'Pudding', price: 4 }
+        ],
+        sweetness: product.specs?.sweetness || [
+          { code: 'none', name: '无糖', nameEn: 'No Sugar' },
+          { code: 'less', name: '少糖', nameEn: 'Less Sugar' },
+          { code: 'normal', name: '标准糖', nameEn: 'Normal Sugar' }
+        ]
+      },
+      message: '获取商品详情成功'
+    }
   }
 }
 

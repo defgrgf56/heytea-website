@@ -36,10 +36,6 @@
                 </div>
               </div>
               <div class="user-menu__divider"></div>
-              <button class="user-menu__item" @click="handleProfile">
-                <span class="icon">👤</span>
-                <span>{{ t('login.profile') }}</span>
-              </button>
               <button class="user-menu__item" @click="handleLogout">
                 <span class="icon">🚪</span>
                 <span>{{ t('login.logout') }}</span>
@@ -166,11 +162,6 @@ const selectLanguage = (lang) => {
   }
   isLanguageMenuOpen.value = false
   console.log('切换语言:', lang, locale.value)
-}
-
-const handleProfile = () => {
-  isUserMenuOpen.value = false
-  router.push('/profile')
 }
 
 const handleLogout = async () => {

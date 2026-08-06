@@ -54,8 +54,14 @@
         </router-link>
       </nav>
 
-      <!-- 右侧功能区（语言切换） -->
+      <!-- 右侧功能区（购物车 + 语言切换） -->
       <div class="header__actions">
+        <!-- 购物车图标 -->
+        <button class="header__cart" @click="toggleCart">
+          <span class="icon-cart">🛒</span>
+          <span v-if="cartCount > 0" class="cart-badge">{{ cartCount }}</span>
+        </button>
+        
         <div class="header__language-wrapper">
           <button class="header__language" @click="toggleLanguageMenu">
             <span class="icon-globe">🌐</span>
@@ -106,6 +112,9 @@
         </router-link>
       </div>
     </transition>
+    
+    <!-- 购物车侧边栏 -->
+    <CartSidebar :is-open="isCartOpen" @close="isCartOpen = false" />
   </header>
 </template>
 
@@ -116,6 +125,7 @@ import { useI18n } from 'vue-i18n'
 import { useCartStore } from '@/stores/cart'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
+import CartSidebar from './CartSidebar.vue'
 
 const router = useRouter()
 const { locale, t } = useI18n()
@@ -130,6 +140,7 @@ const isScrolled = ref(false)
 const isMobileMenuOpen = ref(false)
 const isLanguageMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
+const isCartOpen = ref(false)
 
 const navItems = [
   { name: 'nav.order', path: '/order' },
@@ -192,7 +203,7 @@ const handleLogin = () => {
 }
 
 const toggleCart = () => {
-  console.log('打开购物车')
+  isCartOpen.value = !isCartOpen.value
 }
 
 const toggleMobileMenu = () => {
@@ -351,6 +362,47 @@ onUnmounted(() => {
 
     @media (max-width: 768px) {
       display: none;
+    }
+  }
+  
+  // 购物车按钮
+  &__cart {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .icon-cart {
+      font-size: 20px;
+    }
+    
+    .cart-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      background-color: #f44336;
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
     }
   }
 

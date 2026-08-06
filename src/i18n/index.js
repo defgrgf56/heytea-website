@@ -131,6 +131,15 @@ const messages = {
       checkoutSuccess: '下单成功！感谢您的购买',
       loginRequired: '请先登录后再加入购物车，是否现在登录？'
     },
+    cart: {
+      empty: '购物车是空的',
+      goShopping: '去逛逛',
+      subtotal: '小计',
+      clear: '清空',
+      confirmClear: '确定要清空购物车吗？',
+      cleared: '购物车已清空',
+      removed: '已移除商品'
+    },
     orders: {
       title: '我的订单',
       orderNo: '订单号',
@@ -328,6 +337,15 @@ const messages = {
       checkout: 'Checkout',
       checkoutSuccess: 'Order placed successfully! Thank you for your purchase',
       loginRequired: 'Please login first to add items to cart. Login now?'
+    },
+    cart: {
+      empty: 'Your cart is empty',
+      goShopping: 'Go Shopping',
+      subtotal: 'Subtotal',
+      clear: 'Clear',
+      confirmClear: 'Are you sure to clear the cart?',
+      cleared: 'Cart cleared',
+      removed: 'Item removed'
     },
     orders: {
       title: 'My Orders',

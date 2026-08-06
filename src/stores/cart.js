@@ -15,6 +15,10 @@ export const useCartStore = defineStore('cart', () => {
       return total + (item.price * item.quantity)
     }, 0)
   })
+  
+  const totalPrice = computed(() => {
+    return cartTotal.value.toFixed(2)
+  })
 
   // 方法
   const addItem = (product) => {
@@ -55,6 +59,7 @@ export const useCartStore = defineStore('cart', () => {
     items,
     cartCount,
     cartTotal,
+    totalPrice,
     addItem,
     removeItem,
     updateQuantity,

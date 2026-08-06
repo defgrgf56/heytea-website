@@ -6,11 +6,13 @@
         <component :is="Component" />
       </transition>
     </router-view>
+    <Toast />
   </div>
 </template>
 
 <script setup>
 import Header from './components/Header.vue'
+import Toast from './components/Toast.vue'
 </script>
 
 <style lang="scss">

@@ -27,7 +27,7 @@
           
           <!-- 用户下拉菜单 -->
           <transition name="fade">
-            <div v-if="isUserMenuOpen" class="user-menu">
+            <div v-if="isUserMenuOpen" class="user-menu" @click.stop>
               <div class="user-menu__info">
                 <img :src="userAvatar" alt="用户头像" class="user-menu__avatar" />
                 <div class="user-menu__details">
@@ -64,7 +64,7 @@
           
           <!-- 语言下拉菜单 -->
           <transition name="fade">
-            <div v-if="isLanguageMenuOpen" class="language-menu">
+            <div v-if="isLanguageMenuOpen" class="language-menu" @click.stop>
               <button 
                 class="language-menu__item" 
                 :class="{ 'language-menu__item--active': currentLang === '简体中文' }"
@@ -144,12 +144,14 @@ const currentLang = ref('简体中文')
 // 用户邮箱（从 store 获取）
 const userEmail = computed(() => userStore.user?.email || '')
 
-const toggleLanguageMenu = () => {
+const toggleLanguageMenu = (e) => {
+  e.stopPropagation()
   isLanguageMenuOpen.value = !isLanguageMenuOpen.value
   isUserMenuOpen.value = false
 }
 
-const toggleUserMenu = () => {
+const toggleUserMenu = (e) => {
+  e.stopPropagation()
   isUserMenuOpen.value = !isUserMenuOpen.value
   isLanguageMenuOpen.value = false
 }
@@ -202,24 +204,9 @@ const closeMobileMenu = () => {
 }
 
 // 点击页面其他地方关闭菜单
-const handleClickOutside = (e) => {
-  // 检查是否点击了用户菜单或语言菜单区域
-  const clickedUserMenu = e.target.closest('.header__user-wrapper')
-  const clickedLanguageMenu = e.target.closest('.header__language-wrapper')
-  const clickedNav = e.target.closest('.header__nav-item')
-  
-  // 如果点击了导航链接，先关闭菜单再让链接正常工作
-  if (clickedNav) {
-    isUserMenuOpen.value = false
-    isLanguageMenuOpen.value = false
-    return
-  }
-  
-  // 如果点击了其他地方，关闭所有菜单
-  if (!clickedUserMenu && !clickedLanguageMenu) {
-    isUserMenuOpen.value = false
-    isLanguageMenuOpen.value = false
-  }
+const handleClickOutside = () => {
+  isUserMenuOpen.value = false
+  isLanguageMenuOpen.value = false
 }
 
 onMounted(() => {

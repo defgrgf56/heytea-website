@@ -31,7 +31,7 @@
         </div>
         <div v-else class="no-address">
           <p>{{ t('checkout.noAddress') }}</p>
-          <button class="btn-primary" @click="goToProfile">{{ t('checkout.addAddress') }}</button>
+          <button class="btn-primary" @click="showAddressSelector = true">{{ t('checkout.selectAddress') }}</button>
         </div>
       </div>
       
@@ -76,8 +76,8 @@
             </div>
             <div class="modal-body">
               <div v-if="allAddresses.length === 0" class="empty-state">
-                <p>{{ t('address.empty') }}</p>
-                <button class="btn-primary" @click="goToProfileAndClose">{{ t('checkout.addAddress') }}</button>
+                <p>{{ t('checkout.noAddressTip') }}</p>
+                <button class="btn-primary" @click="goToProfileAndClose">{{ t('checkout.addNewAddress') }}</button>
               </div>
               <div v-else class="address-list">
                 <div

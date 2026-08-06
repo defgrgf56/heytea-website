@@ -7,6 +7,10 @@
  * 将 PEM 格式公钥转换为 ArrayBuffer
  */
 function pemToArrayBuffer(pem) {
+  if (!pem || typeof pem !== 'string') {
+    throw new Error('公钥格式无效')
+  }
+  
   const base64 = pem
     .replace('-----BEGIN PUBLIC KEY-----', '')
     .replace('-----END PUBLIC KEY-----', '')

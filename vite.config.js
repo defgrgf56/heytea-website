@@ -10,7 +10,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
+    port: 5173,  // 修改为后端允许的端口
     open: true
   }
 })

@@ -280,7 +280,18 @@ export const authApi = {
     // 真实后端 API：使用 RSA 加密登录
     try {
       // 1. 获取 Challenge
-      const challenge = await api.get('/auth/challenge?purpose=login')
+      const challengeResponse = await api.get('/auth/challenge?purpose=login')
+      console.log('📦 Challenge 完整响应:', challengeResponse)
+      
+      // 从响应中提取 data 字段（后端返回格式：{success, message, data}）
+      const challenge = challengeResponse.data
+      
+      if (!challenge || !challenge.publicKey) {
+        console.error('❌ Challenge 数据无效:', challenge)
+        throw new Error('未获取到公钥，请检查网络连接')
+      }
+      
+      console.log('✅ 公钥已获取，准备加密...')
       
       // 2. 加密登录数据
       const payload = await encryptPayload(challenge.publicKey, {
@@ -291,34 +302,41 @@ export const authApi = {
         password: credentials.password
       })
       
+      console.log('✅ 数据已加密，提交登录...')
+      
       // 3. 提交加密后的登录请求
-      const response = await api.post('/auth/login', {
+      const loginResponse = await api.post('/auth/login', {
         credential: {
           challengeId: challenge.challengeId,
           payload
         }
       })
       
+      console.log('📦 登录完整响应:', loginResponse)
+      
+      // 从响应中提取 data 字段
+      const responseData = loginResponse.data
+      
       // 4. 转换响应格式，兼容前端
       return {
         success: true,
         data: {
-          token: response.token,
+          token: responseData.token,
           user: {
-            id: response.user.id,
-            username: response.user.username,
-            email: response.user.email,
-            nickname: response.user.nickname || response.user.username,
-            avatar: response.user.avatar || '/images/logo.webp',
-            role: response.user.role,
-            roles: response.user.roles,
-            permissions: response.user.permissions
+            id: responseData.user.id,
+            username: responseData.user.username,
+            email: responseData.user.email,
+            nickname: responseData.user.nickname || responseData.user.username,
+            avatar: responseData.user.avatar || '/images/logo.webp',
+            role: responseData.user.role,
+            roles: responseData.user.roles,
+            permissions: responseData.user.permissions
           }
         },
         message: '登录成功'
       }
     } catch (error) {
-      console.error('登录失败:', error)
+      console.error('❌ 登录失败:', error)
       throw error
     }
   },

@@ -116,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
@@ -133,8 +133,8 @@ const showChangePassword = ref(false)
 const currentLang = computed(() => locale.value === 'zh-CN' ? '简体中文' : 'English')
 
 const editForm = reactive({
-  nickname: userName.value,
-  email: userEmail.value
+  nickname: '',
+  email: ''
 })
 
 const passwordForm = reactive({
@@ -142,6 +142,12 @@ const passwordForm = reactive({
   newPassword: '',
   confirmPassword: ''
 })
+
+// 监听用户数据变化，更新表单
+watch([userName, userEmail], () => {
+  editForm.nickname = userName.value || ''
+  editForm.email = userEmail.value || ''
+}, { immediate: true })
 
 // 保存资料
 function saveProfile() {

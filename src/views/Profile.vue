@@ -1,88 +1,177 @@
 <template>
   <div class="profile-page">
     <div class="profile-container">
-      <!-- 用户信息卡片 -->
-      <div class="profile-card">
-        <div class="profile-header">
-          <img :src="userAvatar" alt="头像" class="profile-avatar" />
-          <div class="profile-info">
-            <h2 class="profile-name">{{ userName }}</h2>
-            <p class="profile-email">{{ userEmail }}</p>
+      <!-- 左侧菜单 -->
+      <aside class="profile-sidebar">
+        <div class="user-info">
+          <img :src="userAvatar" alt="头像" class="user-avatar" />
+          <h3 class="user-name">{{ userName }}</h3>
+          <p class="user-email">{{ userEmail }}</p>
+        </div>
+        
+        <nav class="profile-nav">
+          <button 
+            v-for="item in menuItems" 
+            :key="item.key"
+            class="nav-item"
+            :class="{ 'nav-item--active': activeMenu === item.key }"
+            @click="activeMenu = item.key"
+          >
+            <span class="nav-icon">{{ item.icon }}</span>
+            <span class="nav-text">{{ t(item.label) }}</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- 右侧内容区 -->
+      <main class="profile-content">
+        <!-- 我的订单 -->
+        <div v-if="activeMenu === 'orders'" class="content-section">
+          <h2 class="section-title">{{ t('profile.myOrders') }}</h2>
+          <div class="orders-list">
+            <div v-if="orders.length === 0" class="empty-state">
+              <span class="empty-icon">📦</span>
+              <p>{{ t('profile.noOrders') }}</p>
+              <router-link to="/order" class="btn-primary">{{ t('profile.goOrder') }}</router-link>
+            </div>
+            <div v-else>
+              <div v-for="order in orders" :key="order.id" class="order-card">
+                <div class="order-header">
+                  <span class="order-number">{{ t('profile.orderNumber') }}: {{ order.id }}</span>
+                  <span class="order-status" :class="`status-${order.status}`">
+                    {{ t(`order.status.${order.status}`) }}
+                  </span>
+                </div>
+                <div class="order-body">
+                  <div v-for="item in order.items" :key="item.id" class="order-item">
+                    <img :src="item.image" :alt="item.name" class="item-image" />
+                    <div class="item-info">
+                      <p class="item-name">{{ item.name }}</p>
+                      <p class="item-specs">{{ item.size }} / {{ item.ice }} / {{ item.sugar }}</p>
+                    </div>
+                    <span class="item-quantity">x{{ item.quantity }}</span>
+                    <span class="item-price">¥{{ item.price }}</span>
+                  </div>
+                </div>
+                <div class="order-footer">
+                  <span class="order-time">{{ formatDate(order.createdAt) }}</span>
+                  <span class="order-total">{{ t('profile.total') }}: ¥{{ order.totalAmount }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 菜单列表 -->
-      <div class="menu-section">
-        <h3 class="section-title">{{ t('profile.myAccount') }}</h3>
-        <div class="menu-list">
-          <router-link to="/orders" class="menu-item">
-            <span class="menu-icon">📦</span>
-            <span class="menu-text">{{ t('profile.myOrders') }}</span>
-            <span class="menu-arrow">›</span>
-          </router-link>
-          
-          <div class="menu-item" @click="showEditProfile = true">
-            <span class="menu-icon">👤</span>
-            <span class="menu-text">{{ t('profile.editProfile') }}</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          
-          <div class="menu-item" @click="showChangePassword = true">
-            <span class="menu-icon">🔒</span>
-            <span class="menu-text">{{ t('profile.changePassword') }}</span>
-            <span class="menu-arrow">›</span>
+        <!-- 个人资料 -->
+        <div v-if="activeMenu === 'info'" class="content-section">
+          <h2 class="section-title">{{ t('profile.personalInfo') }}</h2>
+          <div class="info-form">
+            <div class="form-group">
+              <label>{{ t('profile.avatar') }}</label>
+              <div class="avatar-upload">
+                <img :src="editForm.avatar" alt="头像" class="avatar-preview" />
+                <button class="btn-upload">{{ t('profile.changeAvatar') }}</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>{{ t('profile.nickname') }}</label>
+              <input v-model="editForm.nickname" type="text" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label>{{ t('profile.email') }}</label>
+              <input v-model="editForm.email" type="email" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label>{{ t('profile.phone') }}</label>
+              <input v-model="editForm.phone" type="tel" class="form-input" placeholder="未设置" />
+            </div>
+            <button class="btn-save" @click="saveProfile">{{ t('profile.save') }}</button>
           </div>
         </div>
-      </div>
 
-      <div class="menu-section">
-        <h3 class="section-title">{{ t('profile.settings') }}</h3>
-        <div class="menu-list">
-          <div class="menu-item">
-            <span class="menu-icon">🌐</span>
-            <span class="menu-text">{{ t('profile.language') }}</span>
-            <span class="menu-value">{{ currentLang }}</span>
-          </div>
-          
-          <div class="menu-item" @click="clearCache">
-            <span class="menu-icon">🗑️</span>
-            <span class="menu-text">{{ t('profile.clearCache') }}</span>
-            <span class="menu-arrow">›</span>
+        <!-- 收货地址 -->
+        <div v-if="activeMenu === 'address'" class="content-section">
+          <h2 class="section-title">{{ t('profile.addresses') }}</h2>
+          <div class="address-list">
+            <div v-if="addresses.length === 0" class="empty-state">
+              <span class="empty-icon">📍</span>
+              <p>{{ t('profile.noAddress') }}</p>
+            </div>
+            <div v-else class="address-cards">
+              <div v-for="addr in addresses" :key="addr.id" class="address-card">
+                <div class="address-header">
+                  <span class="address-name">{{ addr.name }}</span>
+                  <span class="address-phone">{{ addr.phone }}</span>
+                  <span v-if="addr.isDefault" class="address-default">{{ t('profile.default') }}</span>
+                </div>
+                <p class="address-detail">{{ addr.address }}</p>
+                <div class="address-actions">
+                  <button class="btn-text">{{ t('profile.edit') }}</button>
+                  <button class="btn-text">{{ t('profile.delete') }}</button>
+                  <button v-if="!addr.isDefault" class="btn-text">{{ t('profile.setDefault') }}</button>
+                </div>
+              </div>
+            </div>
+            <button class="btn-add">+ {{ t('profile.addAddress') }}</button>
           </div>
         </div>
-      </div>
 
-      <!-- 退出登录按钮 -->
-      <button class="logout-btn" @click="handleLogout">
-        {{ t('profile.logout') }}
-      </button>
+        <!-- 账号设置 -->
+        <div v-if="activeMenu === 'settings'" class="content-section">
+          <h2 class="section-title">{{ t('profile.accountSettings') }}</h2>
+          <div class="settings-list">
+            <div class="setting-item">
+              <div class="setting-info">
+                <span class="setting-icon">🔒</span>
+                <div class="setting-text">
+                  <h4>{{ t('profile.changePassword') }}</h4>
+                  <p>{{ t('profile.passwordDesc') }}</p>
+                </div>
+              </div>
+              <button class="btn-secondary" @click="showChangePassword = true">
+                {{ t('profile.change') }}
+              </button>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <span class="setting-icon">🌐</span>
+                <div class="setting-text">
+                  <h4>{{ t('profile.language') }}</h4>
+                  <p>{{ currentLang }}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-info">
+                <span class="setting-icon">🗑️</span>
+                <div class="setting-text">
+                  <h4>{{ t('profile.clearCache') }}</h4>
+                  <p>{{ t('profile.cacheDesc') }}</p>
+                </div>
+              </div>
+              <button class="btn-secondary" @click="clearCache">
+                {{ t('profile.clear') }}
+              </button>
+            </div>
+            
+            <div class="setting-item danger">
+              <div class="setting-info">
+                <span class="setting-icon">🚪</span>
+                <div class="setting-text">
+                  <h4>{{ t('profile.logout') }}</h4>
+                  <p>{{ t('profile.logoutDesc') }}</p>
+                </div>
+              </div>
+              <button class="btn-danger" @click="handleLogout">
+                {{ t('profile.logout') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
-
-    <!-- 编辑资料弹窗 -->
-    <transition name="fade">
-      <div v-if="showEditProfile" class="modal-overlay" @click="showEditProfile = false">
-        <div class="modal-content" @click.stop>
-          <h3>{{ t('profile.editProfile') }}</h3>
-          <div class="form-group">
-            <label>{{ t('profile.nickname') }}</label>
-            <input v-model="editForm.nickname" type="text" class="form-input" />
-          </div>
-          <div class="form-group">
-            <label>{{ t('profile.email') }}</label>
-            <input v-model="editForm.email" type="email" class="form-input" />
-          </div>
-          <div class="modal-actions">
-            <button class="btn-cancel" @click="showEditProfile = false">
-              {{ t('profile.cancel') }}
-            </button>
-            <button class="btn-save" @click="saveProfile">
-              {{ t('profile.save') }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </transition>
 
     <!-- 修改密码弹窗 -->
     <transition name="fade">
@@ -116,25 +205,38 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
+import { useOrderStore } from '@/stores/order'
 import { storeToRefs } from 'pinia'
 
 const router = useRouter()
 const { t, locale } = useI18n()
 const userStore = useUserStore()
-const { userName, userEmail, userAvatar } = storeToRefs(userStore)
+const orderStore = useOrderStore()
 
-const showEditProfile = ref(false)
+const { userName, userEmail, userAvatar } = storeToRefs(userStore)
+const { orders } = storeToRefs(orderStore)
+
+const activeMenu = ref('orders')
 const showChangePassword = ref(false)
+
+const menuItems = [
+  { key: 'orders', icon: '📦', label: 'profile.myOrders' },
+  { key: 'info', icon: '👤', label: 'profile.personalInfo' },
+  { key: 'address', icon: '📍', label: 'profile.addresses' },
+  { key: 'settings', icon: '⚙️', label: 'profile.accountSettings' }
+]
 
 const currentLang = computed(() => locale.value === 'zh-CN' ? '简体中文' : 'English')
 
 const editForm = reactive({
+  avatar: userAvatar.value,
   nickname: userName.value,
-  email: userEmail.value
+  email: userEmail.value,
+  phone: ''
 })
 
 const passwordForm = reactive({
@@ -143,11 +245,32 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
+const addresses = ref([
+  // 示例数据
+  // {
+  //   id: 1,
+  //   name: '张三',
+  //   phone: '138****8888',
+  //   address: '广东省深圳市南山区科技园南区',
+  //   isDefault: true
+  // }
+])
+
+// 格式化日期
+function formatDate(dateString) {
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
+
 // 保存资料
 function saveProfile() {
   // TODO: 调用 API 更新用户信息
   alert(t('profile.saveSuccess'))
-  showEditProfile.value = false
 }
 
 // 修改密码
@@ -179,6 +302,11 @@ async function handleLogout() {
     router.push('/')
   }
 }
+
+onMounted(() => {
+  // 加载用户订单
+  orderStore.loadOrdersFromStorage()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -189,127 +317,532 @@ async function handleLogout() {
 }
 
 .profile-container {
-  max-width: 600px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 30px 20px;
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 }
 
-.profile-card {
+// 左侧边栏
+.profile-sidebar {
+  width: 260px;
+  flex-shrink: 0;
   background-color: white;
   border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 20px;
+  overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  
+  @media (max-width: 768px) {
+    width: 100%;
+  }
 }
 
-.profile-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
+.user-info {
+  padding: 30px 20px;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.profile-avatar {
+.user-avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #f0f0f0;
+  margin-bottom: 12px;
 }
 
-.profile-info {
-  flex: 1;
-}
-
-.profile-name {
-  font-size: 24px;
+.user-name {
+  font-size: 18px;
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   color: #1a1a1a;
 }
 
-.profile-email {
-  font-size: 14px;
-  color: #666;
+.user-email {
+  font-size: 13px;
+  color: #999;
   margin: 0;
 }
 
-.menu-section {
-  margin-bottom: 20px;
+.profile-nav {
+  padding: 10px 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 14px 20px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+  font-size: 15px;
+  border-left: 3px solid transparent;
+  
+  &:hover {
+    background-color: #f8f8f8;
+    color: #1a1a1a;
+  }
+  
+  &--active {
+    background-color: #f8f8f8;
+    color: #1a1a1a;
+    font-weight: 600;
+    border-left-color: #1a1a1a;
+  }
+}
+
+.nav-icon {
+  font-size: 18px;
+  margin-right: 12px;
+  width: 24px;
+  text-align: center;
+}
+
+.nav-text {
+  flex: 1;
+}
+
+// 右侧内容区
+.profile-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.content-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  
+  @media (max-width: 768px) {
+    padding: 20px;
+  }
 }
 
 .section-title {
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 600;
-  color: #999;
-  margin: 0 0 12px 0;
-  padding: 0 4px;
+  margin: 0 0 24px 0;
+  color: #1a1a1a;
 }
 
-.menu-list {
-  background-color: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+// 订单列表
+.orders-list {
+  .order-card {
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  .order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e5e5;
+  }
+  
+  .order-number {
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .order-status {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 12px;
+    
+    &.status-pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    &.status-processing {
+      background-color: #cfe2ff;
+      color: #084298;
+    }
+    
+    &.status-completed {
+      background-color: #d1e7dd;
+      color: #0f5132;
+    }
+    
+    &.status-cancelled {
+      background-color: #f8d7da;
+      color: #842029;
+    }
+  }
+  
+  .order-body {
+    margin-bottom: 12px;
+  }
+  
+  .order-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    
+    .item-image {
+      width: 50px;
+      height: 50px;
+      border-radius: 6px;
+      object-fit: cover;
+    }
+    
+    .item-info {
+      flex: 1;
+      min-width: 0;
+      
+      .item-name {
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0 0 4px 0;
+        color: #1a1a1a;
+      }
+      
+      .item-specs {
+        font-size: 12px;
+        color: #999;
+        margin: 0;
+      }
+    }
+    
+    .item-quantity {
+      font-size: 14px;
+      color: #666;
+      margin-right: 16px;
+    }
+    
+    .item-price {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+  }
+  
+  .order-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid #e5e5e5;
+    font-size: 13px;
+    
+    .order-time {
+      color: #999;
+    }
+    
+    .order-total {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+  }
 }
 
-.menu-item {
+// 个人资料表单
+.info-form {
+  max-width: 600px;
+}
+
+.form-group {
+  margin-bottom: 24px;
+  
+  label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #333;
+  }
+  
+  .form-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: 'KaiTi', 'STKaiti', '楷体', 'SimKai', serif;
+    transition: border-color 0.3s ease;
+    
+    &:focus {
+      outline: none;
+      border-color: #1a1a1a;
+    }
+  }
+}
+
+.avatar-upload {
   display: flex;
   align-items: center;
-  padding: 16px 20px;
-  text-decoration: none;
-  color: #1a1a1a;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  border-bottom: 1px solid #f5f5f5;
-
-  &:last-child {
-    border-bottom: none;
+  gap: 16px;
+  
+  .avatar-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #f0f0f0;
   }
-
-  &:hover {
-    background-color: #f8f8f8;
-  }
-
-  .menu-icon {
-    font-size: 20px;
-    margin-right: 12px;
-  }
-
-  .menu-text {
-    flex: 1;
-    font-size: 15px;
-  }
-
-  .menu-value {
+  
+  .btn-upload {
+    padding: 8px 16px;
+    background-color: #f5f5f5;
+    border: none;
+    border-radius: 6px;
     font-size: 14px;
-    color: #999;
-    margin-right: 8px;
-  }
-
-  .menu-arrow {
-    font-size: 20px;
-    color: #ccc;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    
+    &:hover {
+      background-color: #e5e5e5;
+    }
   }
 }
 
-.logout-btn {
+// 地址列表
+.address-cards {
+  .address-card {
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  .address-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    
+    .address-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    
+    .address-phone {
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .address-default {
+      padding: 2px 8px;
+      background-color: #1a1a1a;
+      color: white;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+  }
+  
+  .address-detail {
+    font-size: 14px;
+    color: #666;
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+  }
+  
+  .address-actions {
+    display: flex;
+    gap: 16px;
+    
+    .btn-text {
+      background: none;
+      border: none;
+      color: #1a1a1a;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.btn-add {
   width: 100%;
-  padding: 14px;
+  padding: 12px;
+  margin-top: 16px;
+  background-color: #f8f8f8;
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: #f0f0f0;
+    border-color: #999;
+    color: #333;
+  }
+}
+
+// 设置列表
+.settings-list {
+  .setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    &.danger {
+      background-color: #fff5f5;
+    }
+  }
+  
+  .setting-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    
+    .setting-icon {
+      font-size: 24px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: white;
+      border-radius: 8px;
+    }
+    
+    .setting-text {
+      h4 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+        color: #1a1a1a;
+      }
+      
+      p {
+        font-size: 13px;
+        color: #999;
+        margin: 0;
+      }
+    }
+  }
+}
+
+// 按钮样式
+.btn-primary {
+  display: inline-block;
+  padding: 10px 24px;
+  background-color: #1a1a1a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  
+  &:hover {
+    background-color: #000;
+  }
+}
+
+.btn-secondary {
+  padding: 8px 16px;
   background-color: white;
-  color: #f44336;
-  border: 1px solid #f44336;
-  border-radius: 12px;
+  color: #1a1a1a;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: #f8f8f8;
+    border-color: #999;
+  }
+}
+
+.btn-danger {
+  padding: 8px 16px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  
+  &:hover {
+    background-color: #d32f2f;
+  }
+}
+
+.btn-save {
+  padding: 12px 24px;
+  background-color: #1a1a1a;
+  color: white;
+  border: none;
+  border-radius: 8px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: 'KaiTi', 'STKaiti', '楷体', 'SimKai', serif;
-
+  transition: background-color 0.3s ease;
+  
   &:hover {
-    background-color: #fff5f5;
+    background-color: #000;
   }
 }
 
+// 空状态
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  
+  .empty-icon {
+    font-size: 64px;
+    display: block;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  
+  p {
+    font-size: 15px;
+    color: #999;
+    margin: 0 0 24px 0;
+  }
+}
+
+// 弹窗
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -331,7 +864,7 @@ async function handleLogout() {
   width: 100%;
   max-width: 400px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-
+  
   h3 {
     font-size: 20px;
     font-weight: 600;
@@ -339,38 +872,11 @@ async function handleLogout() {
   }
 }
 
-.form-group {
-  margin-bottom: 20px;
-
-  label {
-    display: block;
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 8px;
-    color: #333;
-  }
-
-  .form-input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 15px;
-    font-family: 'KaiTi', 'STKaiti', '楷体', 'SimKai', serif;
-    transition: border-color 0.3s ease;
-
-    &:focus {
-      outline: none;
-      border-color: #1a1a1a;
-    }
-  }
-}
-
 .modal-actions {
   display: flex;
   gap: 12px;
   margin-top: 24px;
-
+  
   button {
     flex: 1;
     padding: 12px;
@@ -382,20 +888,20 @@ async function handleLogout() {
     transition: all 0.3s ease;
     font-family: 'KaiTi', 'STKaiti', '楷体', 'SimKai', serif;
   }
-
+  
   .btn-cancel {
     background-color: #f5f5f5;
     color: #666;
-
+    
     &:hover {
       background-color: #e5e5e5;
     }
   }
-
+  
   .btn-save {
     background-color: #1a1a1a;
     color: white;
-
+    
     &:hover {
       background-color: #000;
     }
@@ -410,16 +916,5 @@ async function handleLogout() {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-@media (max-width: 768px) {
-  .profile-avatar {
-    width: 60px;
-    height: 60px;
-  }
-
-  .profile-name {
-    font-size: 20px;
-  }
 }
 </style>

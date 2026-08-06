@@ -115,6 +115,7 @@ const messages = {
     order: {
       title: '在线点餐',
       subtitle: '新鲜现制，即刻享受',
+      searchPlaceholder: '搜索商品...',
       categories: {
         all: '全部',
         tea: '茶饮',
@@ -374,6 +375,7 @@ const messages = {
     order: {
       title: 'Order Online',
       subtitle: 'Fresh made, enjoy now',
+      searchPlaceholder: 'Search products...',
       categories: {
         all: 'All',
         tea: 'Tea',

@@ -10,6 +10,19 @@
 
     <!-- 主要内容区 -->
     <div class="order-container">
+      <!-- 搜索框 -->
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          :placeholder="t('order.searchPlaceholder')"
+          @input="handleSearch"
+        />
+        <button v-if="searchQuery" class="clear-btn" @click="clearSearch">✕</button>
+      </div>
+      
       <!-- 分类标签 -->
       <div class="category-tabs">
         <button
@@ -123,6 +136,7 @@ const categories = [
 ]
 
 const activeCategory = ref('all')
+const searchQuery = ref('')
 
 // 产品数据
 const products = [
@@ -222,11 +236,38 @@ const showCart = ref(false)
 
 // 筛选产品
 const filteredProducts = computed(() => {
-  if (activeCategory.value === 'all') {
-    return products
+  let result = products
+  
+  // 按分类筛选
+  if (activeCategory.value !== 'all') {
+    result = result.filter(p => p.category === activeCategory.value)
   }
-  return products.filter(p => p.category === activeCategory.value)
+  
+  // 按搜索关键词筛选
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    result = result.filter(p => {
+      const name = (locale.value === 'zh-CN' ? p.name : p.nameEn).toLowerCase()
+      const desc = (locale.value === 'zh-CN' ? p.desc : p.descEn).toLowerCase()
+      return name.includes(query) || desc.includes(query)
+    })
+  }
+  
+  return result
 })
+
+// 处理搜索
+function handleSearch() {
+  // 搜索时自动切换到"全部"分类
+  if (searchQuery.value.trim()) {
+    activeCategory.value = 'all'
+  }
+}
+
+// 清除搜索
+function clearSearch() {
+  searchQuery.value = ''
+}
 
 // 购物车数量
 const cartCount = computed(() => {
@@ -345,6 +386,63 @@ function checkout() {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
+}
+
+// 搜索框样式
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto 32px;
+  background-color: white;
+  border-radius: 28px;
+  padding: 12px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+
+  &:focus-within {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .search-icon {
+    font-size: 20px;
+    margin-right: 12px;
+    color: #999;
+  }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    background: transparent;
+    font-family: 'KaiTi', 'STKaiti', '楷体', 'SimKai', serif;
+
+    &::placeholder {
+      color: #999;
+    }
+  }
+
+  .clear-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background-color: #e5e5e5;
+    border-radius: 50%;
+    font-size: 14px;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    margin-left: 8px;
+
+    &:hover {
+      background-color: #d5d5d5;
+    }
+  }
 }
 
 .category-tabs {

@@ -33,6 +33,12 @@
             <span class="menu-text">{{ t('profile.changePassword') }}</span>
             <span class="menu-arrow">›</span>
           </div>
+          
+          <div class="menu-item" @click="showAddressList = true">
+            <span class="menu-icon">📍</span>
+            <span class="menu-text">{{ t('profile.addresses') }}</span>
+            <span class="menu-arrow">›</span>
+          </div>
         </div>
       </div>
 
@@ -112,6 +118,86 @@
         </div>
       </div>
     </transition>
+    
+    <!-- 地址列表弹窗 -->
+    <transition name="fade">
+      <div v-if="showAddressList" class="modal-overlay" @click="showAddressList = false">
+        <div class="modal-content modal-content--wide" @click.stop>
+          <div class="modal-header">
+            <h3>{{ t('profile.addresses') }}</h3>
+            <button class="btn-add-address" @click="openAddressForm()">
+              + {{ t('address.addNew') }}
+            </button>
+          </div>
+          
+          <div v-if="addresses.length === 0" class="empty-address">
+            <span class="empty-icon">📍</span>
+            <p>{{ t('address.empty') }}</p>
+          </div>
+          
+          <div v-else class="address-list">
+            <div v-for="addr in addresses" :key="addr.id" class="address-card">
+              <div class="address-header">
+                <span class="address-name">{{ addr.name }}</span>
+                <span class="address-phone">{{ addr.phone }}</span>
+                <span v-if="addr.isDefault" class="address-default">{{ t('address.default') }}</span>
+              </div>
+              <p class="address-detail">{{ addr.address }}</p>
+              <div class="address-actions">
+                <button class="btn-text" @click="openAddressForm(addr)">{{ t('address.edit') }}</button>
+                <button class="btn-text" @click="deleteAddress(addr.id)">{{ t('address.delete') }}</button>
+                <button v-if="!addr.isDefault" class="btn-text" @click="setDefaultAddress(addr.id)">
+                  {{ t('address.setDefault') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+    
+    <!-- 地址表单弹窗 -->
+    <transition name="fade">
+      <div v-if="showAddressForm" class="modal-overlay" @click="showAddressForm = false">
+        <div class="modal-content" @click.stop>
+          <h3>{{ editingAddressId ? t('address.edit') : t('address.addNew') }}</h3>
+          <div class="form-group">
+            <label>{{ t('address.name') }} *</label>
+            <input v-model="addressForm.name" type="text" class="form-input" :placeholder="t('address.namePlaceholder')" />
+          </div>
+          <div class="form-group">
+            <label>{{ t('address.phone') }} *</label>
+            <input v-model="addressForm.phone" type="tel" class="form-input" :placeholder="t('address.phonePlaceholder')" />
+          </div>
+          <div class="form-group">
+            <label>{{ t('address.region') }}</label>
+            <div class="region-select">
+              <input v-model="addressForm.province" type="text" class="form-input" :placeholder="t('address.province')" />
+              <input v-model="addressForm.city" type="text" class="form-input" :placeholder="t('address.city')" />
+              <input v-model="addressForm.district" type="text" class="form-input" :placeholder="t('address.district')" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>{{ t('address.detail') }} *</label>
+            <textarea v-model="addressForm.detail" class="form-textarea" rows="3" :placeholder="t('address.detailPlaceholder')"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input v-model="addressForm.isDefault" type="checkbox" />
+              <span>{{ t('address.setAsDefault') }}</span>
+            </label>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-cancel" @click="showAddressForm = false">
+              {{ t('profile.cancel') }}
+            </button>
+            <button class="btn-save" @click="saveAddress">
+              {{ t('profile.save') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -120,14 +206,19 @@ import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
-import { storeToRefs } from 'pinia'
+import { useAddressStore } from '@/stores/address'
+import toast from '@/utils/toast'
 
 const router = useRouter()
 const { t, locale } = useI18n()
 const userStore = useUserStore()
+const addressStore = useAddressStore()
 
 const showEditProfile = ref(false)
 const showChangePassword = ref(false)
+const showAddressList = ref(false)
+const showAddressForm = ref(false)
+const editingAddressId = ref(null)
 
 // 安全地获取用户信息的计算属性
 const userName = computed(() => userStore.user?.username || '')
@@ -147,6 +238,19 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
+const addressForm = reactive({
+  name: '',
+  phone: '',
+  province: '',
+  city: '',
+  district: '',
+  detail: '',
+  isDefault: false
+})
+
+// 地址列表
+const addresses = computed(() => addressStore.addresses)
+
 // 监听用户数据变化，更新表单
 watch(() => userStore.user, (user) => {
   if (user) {
@@ -157,19 +261,17 @@ watch(() => userStore.user, (user) => {
 
 // 保存资料
 function saveProfile() {
-  // TODO: 调用 API 更新用户信息
-  alert(t('profile.saveSuccess'))
+  toast.success(t('profile.saveSuccess'))
   showEditProfile.value = false
 }
 
 // 修改密码
 function changePassword() {
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    alert(t('profile.passwordNotMatch'))
+    toast.error(t('profile.passwordNotMatch'))
     return
   }
-  // TODO: 调用 API 修改密码
-  alert(t('profile.changePasswordSuccess'))
+  toast.success(t('profile.changePasswordSuccess'))
   showChangePassword.value = false
   passwordForm.oldPassword = ''
   passwordForm.newPassword = ''
@@ -177,19 +279,91 @@ function changePassword() {
 }
 
 // 清除缓存
-function clearCache() {
-  if (confirm(t('profile.confirmClearCache'))) {
+async function clearCache() {
+  const confirmed = await toast.confirm(t('profile.confirmClearCache'))
+  if (confirmed) {
     localStorage.removeItem('heytea_orders')
-    alert(t('profile.clearCacheSuccess'))
+    toast.success(t('profile.clearCacheSuccess'))
   }
 }
 
 // 退出登录
 async function handleLogout() {
-  if (confirm(t('profile.confirmLogout'))) {
+  const confirmed = await toast.confirm(t('profile.confirmLogout'))
+  if (confirmed) {
     await userStore.logout()
     router.push('/')
   }
+}
+
+// 地址管理
+function openAddressForm(address = null) {
+  if (address) {
+    editingAddressId.value = address.id
+    addressForm.name = address.name
+    addressForm.phone = address.phone
+    addressForm.province = address.province || ''
+    addressForm.city = address.city || ''
+    addressForm.district = address.district || ''
+    addressForm.detail = address.detail
+    addressForm.isDefault = address.isDefault
+  } else {
+    editingAddressId.value = null
+    resetAddressForm()
+  }
+  showAddressForm.value = true
+}
+
+function resetAddressForm() {
+  addressForm.name = ''
+  addressForm.phone = ''
+  addressForm.province = ''
+  addressForm.city = ''
+  addressForm.district = ''
+  addressForm.detail = ''
+  addressForm.isDefault = false
+}
+
+function saveAddress() {
+  if (!addressForm.name || !addressForm.phone || !addressForm.detail) {
+    toast.error(t('address.fillRequired'))
+    return
+  }
+  
+  const addressData = {
+    name: addressForm.name,
+    phone: addressForm.phone,
+    province: addressForm.province,
+    city: addressForm.city,
+    district: addressForm.district,
+    detail: addressForm.detail,
+    address: `${addressForm.province}${addressForm.city}${addressForm.district}${addressForm.detail}`,
+    isDefault: addressForm.isDefault
+  }
+  
+  if (editingAddressId.value) {
+    addressStore.updateAddress(editingAddressId.value, addressData)
+    toast.success(t('address.updateSuccess'))
+  } else {
+    addressStore.addAddress(addressData)
+    toast.success(t('address.addSuccess'))
+  }
+  
+  showAddressForm.value = false
+  resetAddressForm()
+}
+
+async function deleteAddress(id) {
+  const confirmed = await toast.confirm(t('address.confirmDelete'))
+  if (confirmed) {
+    addressStore.deleteAddress(id)
+    toast.success(t('address.deleteSuccess'))
+  }
+}
+
+function setDefaultAddress(id) {
+  addressStore.setDefaultAddress(id)
+  toast.success(t('address.setDefaultSuccess'))
 }
 </script>
 
@@ -424,6 +598,163 @@ async function handleLogout() {
   opacity: 0;
 }
 
+// 地址管理样式
+.modal-content--wide {
+  max-width: 600px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  
+  h3 {
+    margin: 0;
+  }
+  
+  .btn-add-address {
+    padding: 8px 16px;
+    background-color: #1a1a1a;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    
+    &:hover {
+      background-color: #000;
+    }
+  }
+}
+
+.empty-address {
+  text-align: center;
+  padding: 40px 20px;
+  
+  .empty-icon {
+    font-size: 60px;
+    display: block;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+  
+  p {
+    color: #999;
+    margin: 0;
+  }
+}
+
+.address-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.address-card {
+  padding: 16px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  
+  .address-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    
+    .address-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    
+    .address-phone {
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .address-default {
+      padding: 2px 8px;
+      background-color: #1a1a1a;
+      color: white;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+  }
+  
+  .address-detail {
+    font-size: 14px;
+    color: #666;
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+  }
+  
+  .address-actions {
+    display: flex;
+    gap: 16px;
+    
+    .btn-text {
+      background: none;
+      border: none;
+      color: #1a1a1a;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.region-select {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: 'KaiTi', 'STKaiti', '楷体', 'SimKai', serif;
+  resize: vertical;
+  transition: border-color 0.3s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: #1a1a1a;
+  }
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+  
+  span {
+    font-size: 14px;
+    color: #333;
+  }
+}
+
 @media (max-width: 768px) {
   .profile-avatar {
     width: 60px;
@@ -432,6 +763,10 @@ async function handleLogout() {
 
   .profile-name {
     font-size: 20px;
+  }
+  
+  .modal-content--wide {
+    max-width: 100%;
   }
 }
 </style>

@@ -221,7 +221,7 @@ const showAddressForm = ref(false)
 const editingAddressId = ref(null)
 
 // 安全地获取用户信息的计算属性
-const userName = computed(() => userStore.user?.username || '')
+const userName = computed(() => userStore.user?.nickname || userStore.user?.username || '')
 const userEmail = computed(() => userStore.user?.email || '')
 const userAvatar = computed(() => userStore.user?.avatar || '/images/default-avatar.png')
 
@@ -254,13 +254,22 @@ const addresses = computed(() => addressStore.addresses)
 // 监听用户数据变化，更新表单
 watch(() => userStore.user, (user) => {
   if (user) {
-    editForm.nickname = user.username || ''
+    editForm.nickname = user.nickname || user.username || ''
     editForm.email = user.email || ''
   }
 }, { immediate: true, deep: true })
 
 // 保存资料
 function saveProfile() {
+  // 更新用户信息到 store
+  if (userStore.user) {
+    userStore.user.nickname = editForm.nickname
+    userStore.user.email = editForm.email
+    
+    // 同步更新 localStorage
+    localStorage.setItem('user', JSON.stringify(userStore.user))
+  }
+  
   toast.success(t('profile.saveSuccess'))
   showEditProfile.value = false
 }

@@ -96,6 +96,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
+import toast from '@/utils/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -200,9 +201,10 @@ function decreaseQuantity() {
 }
 
 // 加入购物车
-function addToCart() {
+async function addToCart() {
   if (!isLoggedIn.value) {
-    if (confirm(t('order.loginRequired'))) {
+    const confirmed = await toast.confirm(t('order.loginRequired'))
+    if (confirmed) {
       router.push({
         path: '/login',
         query: { redirect: route.fullPath }
@@ -211,7 +213,7 @@ function addToCart() {
     return
   }
   
-  alert(t('productDetail.addSuccess'))
+  toast.success(t('productDetail.addSuccess'))
   // TODO: 实际添加到购物车逻辑
 }
 </script>

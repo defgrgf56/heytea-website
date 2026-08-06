@@ -110,6 +110,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
+import toast from '@/utils/toast'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -168,7 +169,7 @@ async function handleSubmit() {
 
       if (result.success) {
         // 注册成功，切换到登录模式
-        alert(t('login.registerSuccess'))
+        toast.success(t('login.registerSuccess'))
         isRegisterMode.value = false
         formData.password = ''
         formData.confirmPassword = ''

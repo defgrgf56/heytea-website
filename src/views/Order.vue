@@ -119,6 +119,7 @@ import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useOrderStore } from '@/stores/order'
 import { storeToRefs } from 'pinia'
+import toast from '@/utils/toast'
 
 const router = useRouter()
 const { t, locale } = useI18n()
@@ -285,10 +286,11 @@ function viewDetail(productId) {
 }
 
 // 添加到购物车
-function addToCart(product) {
+async function addToCart(product) {
   // 检查是否已登录
   if (!isLoggedIn.value) {
-    if (confirm(t('order.loginRequired'))) {
+    const confirmed = await toast.confirm(t('order.loginRequired'))
+    if (confirmed) {
       // 跳转到登录页，并保存当前页面路径用于登录后返回
       router.push({
         path: '/login',
@@ -305,7 +307,7 @@ function addToCart(product) {
     cartItems.value.push({ ...product, quantity: 1 })
   }
   // 显示添加成功提示
-  console.log('已添加到购物车:', product.name)
+  toast.success(t('productDetail.addSuccess'))
 }
 
 // 增加数量
@@ -327,12 +329,12 @@ function decreaseQuantity(item) {
 }
 
 // 结算
-function checkout() {
+async function checkout() {
   if (cartItems.value.length === 0) return
   
   // 再次确认登录状态
   if (!isLoggedIn.value) {
-    alert(t('order.loginRequired'))
+    toast.warning(t('order.loginRequired'))
     router.push('/login')
     return
   }
@@ -343,7 +345,7 @@ function checkout() {
     totalAmount: cartTotal.value
   })
   
-  alert(t('order.checkoutSuccess'))
+  toast.success(t('order.checkoutSuccess'))
   cartItems.value = []
   showCart.value = false
   

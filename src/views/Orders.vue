@@ -79,6 +79,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useOrderStore } from '@/stores/order'
+import toast from '@/utils/toast'
 
 const router = useRouter()
 const { t, locale } = useI18n()
@@ -98,11 +99,12 @@ function viewOrderDetail(orderId) {
 }
 
 // 取消订单
-function cancelOrder(orderId) {
-  if (confirm(t('orders.confirmCancel'))) {
+async function cancelOrder(orderId) {
+  const confirmed = await toast.confirm(t('orders.confirmCancel'))
+  if (confirmed) {
     const success = orderStore.cancelOrder(orderId)
     if (success) {
-      alert(t('orders.cancelSuccess'))
+      toast.success(t('orders.cancelSuccess'))
     }
   }
 }
@@ -111,7 +113,7 @@ function cancelOrder(orderId) {
 function reorder(orderId) {
   const newOrder = orderStore.reorder(orderId)
   if (newOrder) {
-    alert(t('orders.reorderSuccess'))
+    toast.success(t('orders.reorderSuccess'))
   }
 }
 </script>

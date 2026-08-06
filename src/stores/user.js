@@ -29,8 +29,16 @@ export const useUserStore = defineStore('user', () => {
         // 保存 token 和用户信息
         token.value = response.data.token
         user.value = response.data.user
+        
+        // 尝试加载用户之前保存的头像
+        const userId = response.data.user.id || response.data.user.username
+        const savedAvatar = localStorage.getItem(`avatar_${userId}`)
+        if (savedAvatar) {
+          user.value.avatar = savedAvatar
+        }
+        
         localStorage.setItem('token', response.data.token)
-        localStorage.setItem('user', JSON.stringify(response.data.user))
+        localStorage.setItem('user', JSON.stringify(user.value))
         
         return { success: true }
       } else {
@@ -98,7 +106,15 @@ export const useUserStore = defineStore('user', () => {
       const response = await authApi.getCurrentUser()
       if (response.success) {
         user.value = response.data
-        localStorage.setItem('user', JSON.stringify(response.data))
+        
+        // 尝试加载用户之前保存的头像
+        const userId = response.data.id || response.data.username
+        const savedAvatar = localStorage.getItem(`avatar_${userId}`)
+        if (savedAvatar) {
+          user.value.avatar = savedAvatar
+        }
+        
+        localStorage.setItem('user', JSON.stringify(user.value))
       }
     } catch (err) {
       console.error('获取用户信息失败:', err)
@@ -120,6 +136,13 @@ export const useUserStore = defineStore('user', () => {
       token.value = storedToken
       try {
         user.value = JSON.parse(storedUser)
+        
+        // 尝试加载用户之前保存的头像
+        const userId = user.value.id || user.value.username
+        const savedAvatar = localStorage.getItem(`avatar_${userId}`)
+        if (savedAvatar) {
+          user.value.avatar = savedAvatar
+        }
       } catch (err) {
         console.error('解析用户信息失败:', err)
         localStorage.removeItem('user')

@@ -4,7 +4,20 @@
       <!-- 用户信息卡片 -->
       <div class="profile-card">
         <div class="profile-header">
-          <img :src="userAvatar" alt="头像" class="profile-avatar" />
+          <div class="avatar-container">
+            <img :src="userAvatar" alt="头像" class="profile-avatar" />
+            <div class="avatar-overlay" @click="triggerAvatarUpload">
+              <span class="camera-icon">📷</span>
+              <span class="change-text">更换</span>
+            </div>
+            <input
+              ref="avatarInput"
+              type="file"
+              accept="image/*"
+              style="display: none"
+              @change="handleAvatarChange"
+            />
+          </div>
           <div class="profile-info">
             <h2 class="profile-name">{{ userName }}</h2>
             <p class="profile-email">{{ userEmail }}</p>
@@ -278,6 +291,7 @@ const showAddressForm = ref(false)
 const editingAddressId = ref(null)
 const showRegionPicker = ref(false)
 const regionPickerStep = ref('province') // 'province', 'city', 'district'
+const avatarInput = ref(null) // 头像上传 input 引用
 
 // 安全地获取用户信息的计算属性
 const userName = computed(() => userStore.user?.nickname || userStore.user?.username || '')
@@ -484,6 +498,55 @@ const regionDisplayText = computed(() => {
   if (addressForm.district) parts.push(addressForm.district)
   return parts.length > 0 ? parts.join(' / ') : t('address.region')
 })
+
+// 头像上传功能
+function triggerAvatarUpload() {
+  avatarInput.value?.click()
+}
+
+function handleAvatarChange(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  // 检查文件类型
+  if (!file.type.startsWith('image/')) {
+    toast.error('请选择图片文件')
+    return
+  }
+  
+  // 检查文件大小（限制 2MB）
+  if (file.size > 2 * 1024 * 1024) {
+    toast.error('图片大小不能超过 2MB')
+    return
+  }
+  
+  // 读取文件并转换为 Base64
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const base64Image = e.target.result
+    
+    // 更新用户头像
+    if (userStore.user) {
+      userStore.user.avatar = base64Image
+      
+      // 使用用户 ID 作为 key 单独保存头像
+      const userId = userStore.user.id || userStore.user.username
+      localStorage.setItem(`avatar_${userId}`, base64Image)
+      
+      // 同步更新 localStorage 中的用户信息
+      localStorage.setItem('user', JSON.stringify(userStore.user))
+      
+      toast.success('头像更新成功')
+    }
+  }
+  reader.onerror = () => {
+    toast.error('图片读取失败，请重试')
+  }
+  reader.readAsDataURL(file)
+  
+  // 清空 input，允许重复选择同一文件
+  event.target.value = ''
+}
 </script>
 
 <style lang="scss" scoped>
@@ -513,12 +576,51 @@ const regionDisplayText = computed(() => {
   gap: 20px;
 }
 
+.avatar-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+  
+  &:hover .avatar-overlay {
+    opacity: 1;
+  }
+}
+
 .profile-avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  
+  .camera-icon {
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+  
+  .change-text {
+    font-size: 12px;
+    color: white;
+    font-weight: 500;
+  }
 }
 
 .profile-info {
@@ -1045,9 +1147,27 @@ const regionDisplayText = computed(() => {
 }
 
 @media (max-width: 768px) {
+  .avatar-container {
+    width: 60px;
+    height: 60px;
+  }
+  
   .profile-avatar {
     width: 60px;
     height: 60px;
+  }
+  
+  .avatar-overlay {
+    width: 60px;
+    height: 60px;
+    
+    .camera-icon {
+      font-size: 20px;
+    }
+    
+    .change-text {
+      font-size: 10px;
+    }
   }
 
   .profile-name {

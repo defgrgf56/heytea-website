@@ -201,7 +201,7 @@
     </transition>
     
     <!-- 省市区选择器弹窗 -->
-    <transition name="slide-up">
+    <transition name="fade">
       <div v-if="showRegionPicker" class="region-picker-overlay" @click="showRegionPicker = false">
         <div class="region-picker" @click.stop>
           <div class="region-picker-header">
@@ -882,26 +882,31 @@ const regionDisplayText = computed(() => {
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 2001;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
+  padding: 20px;
 }
 
 .region-picker {
   background-color: white;
   width: 100%;
-  max-width: 600px;
-  max-height: 70vh;
-  border-radius: 16px 16px 0 0;
+  max-width: 500px;
+  max-height: 600px;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  
+  @media (max-width: 768px) {
+    max-height: 80vh;
+  }
 }
 
 .region-picker-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 20px;
+  padding: 20px;
   border-bottom: 1px solid #f0f0f0;
   position: relative;
   
@@ -918,6 +923,7 @@ const regionDisplayText = computed(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: color 0.2s;
     
     &:hover {
       color: #1a1a1a;
@@ -925,15 +931,15 @@ const regionDisplayText = computed(() => {
   }
   
   .back-btn {
-    left: 12px;
+    left: 16px;
   }
   
   .close-btn {
-    right: 12px;
+    right: 16px;
   }
   
   .region-picker-title {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
   }
 }
@@ -950,12 +956,16 @@ const regionDisplayText = computed(() => {
 }
 
 .region-item {
-  padding: 14px 20px;
+  padding: 14px 24px;
   font-size: 15px;
   color: #1a1a1a;
   cursor: pointer;
   transition: background-color 0.2s;
   border-bottom: 1px solid #f5f5f5;
+  
+  &:last-child {
+    border-bottom: none;
+  }
   
   &:hover {
     background-color: #f8f8f8;

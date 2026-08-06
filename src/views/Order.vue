@@ -68,47 +68,11 @@
       </div>
     </div>
 
-    <!-- 购物车浮动按钮 -->
-    <div class="cart-float" v-if="cartCount > 0" @click="showCart = true">
+    <!-- 购物车浮动按钮（移动端） -->
+    <div class="cart-float-mobile" v-if="cartStore.totalItems > 0" @click="toggleCart">
       <span class="cart-icon">🛒</span>
-      <span class="cart-count">{{ cartCount }}</span>
+      <span class="cart-count">{{ cartStore.totalItems }}</span>
     </div>
-
-    <!-- 购物车侧边栏 -->
-    <transition name="slide-left">
-      <div v-if="showCart" class="cart-sidebar">
-        <div class="cart-overlay" @click="showCart = false"></div>
-        <div class="cart-content">
-          <div class="cart-header">
-            <h2>{{ t('order.myCart') }}</h2>
-            <button class="close-btn" @click="showCart = false">✕</button>
-          </div>
-          <div class="cart-items">
-            <div v-for="item in cartItems" :key="item.id" class="cart-item">
-              <img :src="item.image" :alt="item.name" class="cart-item-image" />
-              <div class="cart-item-info">
-                <h4>{{ locale === 'zh-CN' ? item.name : item.nameEn }}</h4>
-                <p class="cart-item-price">¥{{ item.price }}</p>
-              </div>
-              <div class="cart-item-controls">
-                <button @click="decreaseQuantity(item)">-</button>
-                <span>{{ item.quantity }}</span>
-                <button @click="increaseQuantity(item)">+</button>
-              </div>
-            </div>
-          </div>
-          <div class="cart-footer">
-            <div class="cart-total">
-              <span>{{ t('order.total') }}</span>
-              <span class="total-price">¥{{ cartTotal }}</span>
-            </div>
-            <button class="checkout-btn" @click="checkout">
-              {{ t('order.checkout') }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </transition>
   </div>
 </template>
 
@@ -117,14 +81,14 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
-import { useOrderStore } from '@/stores/order'
+import { useCartStore } from '@/stores/cart'
 import { storeToRefs } from 'pinia'
 import toast from '@/utils/toast'
 
 const router = useRouter()
 const { t, locale } = useI18n()
 const userStore = useUserStore()
-const orderStore = useOrderStore()
+const cartStore = useCartStore()
 const { isLoggedIn } = storeToRefs(userStore)
 
 // 分类
@@ -231,9 +195,8 @@ const products = [
   }
 ]
 
-// 购物车
-const cartItems = ref([])
-const showCart = ref(false)
+const activeCategory = ref('all')
+const searchQuery = ref('')
 
 // 筛选产品
 const filteredProducts = computed(() => {
@@ -270,15 +233,12 @@ function clearSearch() {
   searchQuery.value = ''
 }
 
-// 购物车数量
-const cartCount = computed(() => {
-  return cartItems.value.reduce((sum, item) => sum + item.quantity, 0)
-})
-
-// 购物车总价
-const cartTotal = computed(() => {
-  return cartItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0)
-})
+// 打开购物车（触发 Header 中的 CartSidebar）
+function toggleCart() {
+  // 通过事件或直接操作 store 来打开购物车
+  // 这里简化处理：在移动端点击浮动按钮时滚动到顶部，用户可以点击 Header 的购物车图标
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 // 查看详情
 function viewDetail(productId) {
@@ -300,57 +260,9 @@ async function addToCart(product) {
     return
   }
   
-  const existingItem = cartItems.value.find(item => item.id === product.id)
-  if (existingItem) {
-    existingItem.quantity++
-  } else {
-    cartItems.value.push({ ...product, quantity: 1 })
-  }
-  // 显示添加成功提示
+  // 使用 cart store 添加商品
+  cartStore.addItem(product)
   toast.success(t('productDetail.addSuccess'))
-}
-
-// 增加数量
-function increaseQuantity(item) {
-  item.quantity++
-}
-
-// 减少数量
-function decreaseQuantity(item) {
-  if (item.quantity > 1) {
-    item.quantity--
-  } else {
-    // 移除商品
-    const index = cartItems.value.findIndex(i => i.id === item.id)
-    if (index > -1) {
-      cartItems.value.splice(index, 1)
-    }
-  }
-}
-
-// 结算
-async function checkout() {
-  if (cartItems.value.length === 0) return
-  
-  // 再次确认登录状态
-  if (!isLoggedIn.value) {
-    toast.warning(t('order.loginRequired'))
-    router.push('/login')
-    return
-  }
-  
-  // 创建订单
-  const order = orderStore.createOrder({
-    items: cartItems.value,
-    totalAmount: cartTotal.value
-  })
-  
-  toast.success(t('order.checkoutSuccess'))
-  cartItems.value = []
-  showCart.value = false
-  
-  // 跳转到订单列表
-  router.push('/orders')
 }
 </script>
 
@@ -592,8 +504,8 @@ async function checkout() {
   font-size: 16px;
 }
 
-// 购物车浮动按钮
-.cart-float {
+// 购物车浮动按钮（移动端专用）
+.cart-float-mobile {
   position: fixed;
   bottom: 40px;
   right: 40px;
@@ -608,6 +520,11 @@ async function checkout() {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
   z-index: 100;
+
+  // 在桌面端隐藏（Header 已有购物车图标）
+  @media (min-width: 769px) {
+    display: none;
+  }
 
   &:hover {
     transform: scale(1.1);
@@ -632,197 +549,6 @@ async function checkout() {
     justify-content: center;
     font-size: 12px;
     font-weight: 600;
-  }
-}
-
-// 购物车侧边栏
-.cart-sidebar {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1000;
-}
-
-.cart-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.cart-content {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  max-width: 400px;
-  background-color: white;
-  display: flex;
-  flex-direction: column;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
-}
-
-.cart-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24px;
-  border-bottom: 1px solid #f0f0f0;
-
-  h2 {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0;
-  }
-
-  .close-btn {
-    width: 32px;
-    height: 32px;
-    border: none;
-    background-color: #f5f5f5;
-    border-radius: 50%;
-    font-size: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background-color: #e5e5e5;
-    }
-  }
-}
-
-.cart-items {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-.cart-item {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #f0f0f0;
-
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.cart-item-image {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-
-.cart-item-info {
-  flex: 1;
-
-  h4 {
-    font-size: 15px;
-    font-weight: 600;
-    margin: 0 0 4px 0;
-  }
-}
-
-.cart-item-price {
-  font-size: 14px;
-  color: #ff6b00;
-  font-weight: 600;
-  margin: 0;
-}
-
-.cart-item-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  button {
-    width: 28px;
-    height: 28px;
-    border: 1px solid #ddd;
-    background-color: white;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      border-color: #1a1a1a;
-      background-color: #f5f5f5;
-    }
-  }
-
-  span {
-    min-width: 24px;
-    text-align: center;
-    font-weight: 600;
-  }
-}
-
-.cart-footer {
-  padding: 24px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.cart-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  font-size: 16px;
-
-  .total-price {
-    font-size: 24px;
-    font-weight: 600;
-    color: #ff6b00;
-  }
-}
-
-.checkout-btn {
-  width: 100%;
-  padding: 14px;
-  background-color: #1a1a1a;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: 'KaiTi', 'STKaiti', '楷体', 'SimKai', serif;
-
-  &:hover {
-    background-color: #000;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-}
-
-// 动画
-.slide-left-enter-active,
-.slide-left-leave-active {
-  transition: all 0.3s ease;
-
-  .cart-content {
-    transition: transform 0.3s ease;
-  }
-}
-
-.slide-left-enter-from,
-.slide-left-leave-to {
-  .cart-overlay {
-    opacity: 0;
-  }
-
-  .cart-content {
-    transform: translateX(100%);
   }
 }
 
@@ -852,7 +578,7 @@ async function checkout() {
     font-size: 13px;
   }
 
-  .cart-float {
+  .cart-float-mobile {
     bottom: 20px;
     right: 20px;
     width: 50px;

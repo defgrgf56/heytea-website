@@ -6,6 +6,10 @@ export const useCartStore = defineStore('cart', () => {
   const items = ref([])
 
   // 计算属性
+  const totalItems = computed(() => {
+    return items.value.reduce((total, item) => total + item.quantity, 0)
+  })
+
   const cartCount = computed(() => {
     return items.value.reduce((total, item) => total + item.quantity, 0)
   })
@@ -57,6 +61,7 @@ export const useCartStore = defineStore('cart', () => {
 
   return {
     items,
+    totalItems,
     cartCount,
     cartTotal,
     totalPrice,

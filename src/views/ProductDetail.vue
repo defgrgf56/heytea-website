@@ -104,102 +104,46 @@ const router = useRouter()
 const { t, locale } = useI18n()
 const userStore = useUserStore()
 const cartStore = useCartStore()
+const productStore = useProductStore()
 const { isLoggedIn } = storeToRefs(userStore)
 
-// 模拟产品数据
-const products = [
-  {
-    id: 1,
-    name: '芝士莓莓',
-    nameEn: 'Cheese Berry',
-    desc: '新鲜草莓配芝士奶盖，口感细腻香甜',
-    descEn: 'Fresh strawberries with cheese milk foam',
-    price: 28,
-    category: 'cheese',
-    image: '/images/logo.webp',
-    isNew: true
-  },
-  {
-    id: 2,
-    name: '多肉葡萄',
-    nameEn: 'Juicy Grape',
-    desc: '满杯葡萄果肉，鲜甜多汁',
-    descEn: 'Full cup of grape pulp',
-    price: 26,
-    category: 'fruit',
-    image: '/images/logo.webp',
-    isNew: false
-  },
-  {
-    id: 3,
-    name: '金凤茶王',
-    nameEn: 'Golden Phoenix Tea',
-    desc: '经典纯茶系列，原叶茶香浓郁',
-    descEn: 'Classic pure tea series with rich tea aroma',
-    price: 16,
-    category: 'tea',
-    image: '/images/logo.webp',
-    isNew: false
-  },
-  {
-    id: 4,
-    name: '芝芝桃桃',
-    nameEn: 'Cheese Peach',
-    desc: '芝士奶盖配新鲜桃子，甜蜜滋味',
-    descEn: 'Cheese milk foam with fresh peaches',
-    price: 29,
-    category: 'cheese',
-    image: '/images/logo.webp',
-    isNew: false
-  },
-  {
-    id: 5,
-    name: '生打椰椰',
-    nameEn: 'Fresh Coconut',
-    desc: '新鲜椰子水配椰肉，清爽解暑',
-    descEn: 'Fresh coconut water with coconut meat',
-    price: 25,
-    category: 'fruit',
-    image: '/images/logo.webp',
-    isNew: true
-  },
-  {
-    id: 6,
-    name: '厚芋泥波波茶',
-    nameEn: 'Taro Boba Tea',
-    desc: '浓郁芋泥配珍珠，口感绵密',
-    descEn: 'Rich taro with boba pearls',
-    price: 27,
-    category: 'tea',
-    image: '/images/logo.webp',
-    isNew: false
-  },
-  {
-    id: 7,
-    name: '生椰拿铁',
-    nameEn: 'Coconut Latte',
-    desc: '咖啡与椰子的完美结合',
-    descEn: 'Perfect combination of coffee and coconut',
-    price: 24,
-    category: 'coffee',
-    image: '/images/logo.webp',
-    isNew: false
-  },
-  {
-    id: 8,
-    name: '厚乳拿铁',
-    nameEn: 'Thick Milk Latte',
-    desc: '浓郁奶香咖啡，香醇顺滑',
-    descEn: 'Rich milky coffee',
-    price: 22,
-    category: 'coffee',
-    image: '/images/logo.webp',
-    isNew: false
-  }
-]
-
 const productId = parseInt(route.params.id)
-const product = products.find(p => p.id === productId)
+const product = ref(null)
+const loading = ref(true)
+
+// 在组件挂载时加载商品详情
+onMounted(async () => {
+  await loadProductDetail()
+})
+
+// 加载商品详情
+async function loadProductDetail() {
+  loading.value = true
+  
+  try {
+    // 先尝试从 store 中获取（如果从列表页跳转过来）
+    const cachedProduct = productStore.getProductById(productId)
+    
+    if (cachedProduct) {
+      product.value = cachedProduct
+      loading.value = false
+    } else {
+      // 如果 store 中没有，从 API 获取
+      const response = await productStore.fetchProductDetail(productId)
+      if (response.success) {
+        product.value = response.data
+      } else {
+        toast.error(t('productDetail.loadError') || '加载商品失败')
+        // 可选：跳转回列表页
+        // router.push('/order')
+      }
+      loading.value = false
+    }
+  } catch (err) {
+    toast.error(t('productDetail.loadError') || '加载商品失败')
+    loading.value = false
+  }
+}
 
 // 规格选项
 const sizes = [

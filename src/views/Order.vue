@@ -36,7 +36,16 @@
       </div>
 
       <!-- 产品列表 -->
-      <div class="products-grid">
+      <div v-if="loading" class="loading-state">
+        <p>{{ t('order.loading') || '加载中...' }}</p>
+      </div>
+
+      <div v-else-if="error" class="error-state">
+        <p>{{ error }}</p>
+        <button class="retry-btn" @click="loadProducts">{{ t('order.retry') || '重试' }}</button>
+      </div>
+
+      <div v-else class="products-grid">
         <div
           v-for="product in filteredProducts"
           :key="product.id"
@@ -63,7 +72,7 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="filteredProducts.length === 0" class="empty-state">
+      <div v-if="!loading && !error && filteredProducts.length === 0" class="empty-state">
         <p>{{ t('order.noProducts') }}</p>
       </div>
     </div>
@@ -71,11 +80,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
+import { useProductStore } from '@/stores/product'
 import { storeToRefs } from 'pinia'
 import toast from '@/utils/toast'
 
@@ -83,7 +93,9 @@ const router = useRouter()
 const { t, locale } = useI18n()
 const userStore = useUserStore()
 const cartStore = useCartStore()
+const productStore = useProductStore()
 const { isLoggedIn } = storeToRefs(userStore)
+const { products, loading, error } = storeToRefs(productStore)
 
 // 分类
 const categories = [
@@ -97,119 +109,32 @@ const categories = [
 const activeCategory = ref('all')
 const searchQuery = ref('')
 
-// 产品数据
-const products = [
-  {
-    id: 1,
-    name: '芝士莓莓',
-    nameEn: 'Cheese Berry',
-    desc: '新鲜草莓配芝士奶盖',
-    descEn: 'Fresh strawberries with cheese milk foam',
-    price: 28,
-    category: 'cheese',
-    image: '/images/logo.webp',
-    isNew: true
-  },
-  {
-    id: 2,
-    name: '多肉葡萄',
-    nameEn: 'Juicy Grape',
-    desc: '满杯葡萄果肉',
-    descEn: 'Full cup of grape pulp',
-    price: 26,
-    category: 'fruit',
-    image: '/images/logo.webp',
-    isNew: false
-  },
-  {
-    id: 3,
-    name: '金凤茶王',
-    nameEn: 'Golden Phoenix Tea',
-    desc: '经典纯茶系列',
-    descEn: 'Classic pure tea series',
-    price: 16,
-    category: 'tea',
-    image: '/images/logo.webp',
-    isNew: false
-  },
-  {
-    id: 4,
-    name: '芝芝桃桃',
-    nameEn: 'Cheese Peach',
-    desc: '芝士奶盖配新鲜桃子',
-    descEn: 'Cheese milk foam with fresh peaches',
-    price: 29,
-    category: 'cheese',
-    image: '/images/logo.webp',
-    isNew: false
-  },
-  {
-    id: 5,
-    name: '生打椰椰',
-    nameEn: 'Fresh Coconut',
-    desc: '新鲜椰子水配椰肉',
-    descEn: 'Fresh coconut water with coconut meat',
-    price: 25,
-    category: 'fruit',
-    image: '/images/logo.webp',
-    isNew: true
-  },
-  {
-    id: 6,
-    name: '厚芋泥波波茶',
-    nameEn: 'Taro Boba Tea',
-    desc: '浓郁芋泥配珍珠',
-    descEn: 'Rich taro with boba pearls',
-    price: 27,
-    category: 'tea',
-    image: '/images/logo.webp',
-    isNew: false
-  },
-  {
-    id: 7,
-    name: '生椰拿铁',
-    nameEn: 'Coconut Latte',
-    desc: '咖啡与椰子的完美结合',
-    descEn: 'Perfect combination of coffee and coconut',
-    price: 24,
-    category: 'coffee',
-    image: '/images/logo.webp',
-    isNew: false
-  },
-  {
-    id: 8,
-    name: '厚乳拿铁',
-    nameEn: 'Thick Milk Latte',
-    desc: '浓郁奶香咖啡',
-    descEn: 'Rich milky coffee',
-    price: 22,
-    category: 'coffee',
-    image: '/images/logo.webp',
-    isNew: false
-  }
-]
-
-// 筛选产品
+// 筛选产品（从 store 获取的数据）
 const filteredProducts = computed(() => {
-  let result = products
-  
-  // 按分类筛选
-  if (activeCategory.value !== 'all') {
-    result = result.filter(p => p.category === activeCategory.value)
-  }
-  
-  // 按搜索关键词筛选
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase().trim()
-    result = result.filter(p => {
-      const name = (locale.value === 'zh-CN' ? p.name : p.nameEn).toLowerCase()
-      const desc = (locale.value === 'zh-CN' ? p.desc : p.descEn).toLowerCase()
-      return name.includes(query) || desc.includes(query)
-    })
-  }
-  
-  return result
+  return products.value
 })
+
+// 初始化：加载商品列表
+onMounted(async () => {
+  await loadProducts()
+})
+
+// 监听分类和搜索变化，重新加载商品
+watch([activeCategory, searchQuery], () => {
+  loadProducts()
+})
+
+// 加载商品列表
+async function loadProducts() {
+  try {
+    await productStore.fetchProducts({
+      category: activeCategory.value,
+      search: searchQuery.value.trim()
+    })
+  } catch (err) {
+    toast.error(t('order.loadError') || '加载商品失败')
+  }
+}
 
 // 处理搜索
 function handleSearch() {
@@ -486,6 +411,36 @@ async function addToCart(product) {
   padding: 60px 20px;
   color: #999;
   font-size: 16px;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+  font-size: 16px;
+}
+
+.error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #f44336;
+  font-size: 16px;
+
+  .retry-btn {
+    margin-top: 16px;
+    padding: 10px 24px;
+    background-color: #1a1a1a;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &:hover {
+      background-color: #000;
+    }
+  }
 }
 
 @media (max-width: 768px) {

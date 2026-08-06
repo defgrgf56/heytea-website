@@ -195,9 +195,6 @@ const products = [
   }
 ]
 
-const activeCategory = ref('all')
-const searchQuery = ref('')
-
 // 筛选产品
 const filteredProducts = computed(() => {
   let result = products

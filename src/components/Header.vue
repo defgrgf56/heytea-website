@@ -58,7 +58,7 @@
       <div class="header__actions">
         <!-- 购物车图标 -->
         <button class="header__cart" @click="toggleCart">
-          <span class="icon-cart">🛒</span>
+          <span class="icon-cart"></span>
           <span v-if="cartCount > 0" class="cart-badge">{{ cartCount }}</span>
         </button>
         

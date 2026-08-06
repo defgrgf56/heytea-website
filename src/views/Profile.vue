@@ -891,14 +891,14 @@ const regionDisplayText = computed(() => {
   background-color: white;
   width: 100%;
   max-width: 500px;
-  max-height: 600px;
+  max-height: 80vh;
   border-radius: 16px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   
   @media (max-width: 768px) {
-    max-height: 80vh;
+    max-height: 85vh;
   }
 }
 
@@ -948,11 +948,30 @@ const regionDisplayText = computed(() => {
   flex: 1;
   overflow-y: auto;
   padding: 8px 0;
+  min-height: 0;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f5f5f5;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #ddd;
+    border-radius: 3px;
+    
+    &:hover {
+      background: #ccc;
+    }
+  }
 }
 
 .region-list {
   display: flex;
   flex-direction: column;
+  min-height: min-content;
 }
 
 .region-item {

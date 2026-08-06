@@ -68,8 +68,8 @@
       </div>
     </div>
 
-    <!-- 购物车浮动按钮（移动端） -->
-    <div class="cart-float-mobile" v-if="cartStore.totalItems > 0" @click="toggleCart">
+    <!-- 购物车浮动按钮（仅移动端显示） -->
+    <div class="cart-float-mobile" v-if="cartStore.totalItems > 0" @click="scrollToTop">
       <span class="cart-icon">🛒</span>
       <span class="cart-count">{{ cartStore.totalItems }}</span>
     </div>
@@ -230,10 +230,8 @@ function clearSearch() {
   searchQuery.value = ''
 }
 
-// 打开购物车（触发 Header 中的 CartSidebar）
-function toggleCart() {
-  // 通过事件或直接操作 store 来打开购物车
-  // 这里简化处理：在移动端点击浮动按钮时滚动到顶部，用户可以点击 Header 的购物车图标
+// 滚动到顶部（移动端点击购物车按钮）
+function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -501,7 +499,7 @@ async function addToCart(product) {
   font-size: 16px;
 }
 
-// 购物车浮动按钮（移动端专用）
+// 购物车浮动按钮（仅移动端显示）
 .cart-float-mobile {
   position: fixed;
   bottom: 40px;
@@ -510,7 +508,7 @@ async function addToCart(product) {
   height: 60px;
   background-color: #1a1a1a;
   border-radius: 50%;
-  display: flex;
+  display: none; // 默认隐藏
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -518,9 +516,9 @@ async function addToCart(product) {
   transition: all 0.3s ease;
   z-index: 100;
 
-  // 在桌面端隐藏（Header 已有购物车图标）
-  @media (min-width: 769px) {
-    display: none;
+  // 仅在移动端显示
+  @media (max-width: 768px) {
+    display: flex;
   }
 
   &:hover {

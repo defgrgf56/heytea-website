@@ -129,6 +129,72 @@ const products = [
     category: 'fruit',
     image: '/images/logo.webp',
     isNew: false
+  },
+  {
+    id: 3,
+    name: '金凤茶王',
+    nameEn: 'Golden Phoenix Tea',
+    desc: '经典纯茶系列，原叶茶香浓郁',
+    descEn: 'Classic pure tea series with rich tea aroma',
+    price: 16,
+    category: 'tea',
+    image: '/images/logo.webp',
+    isNew: false
+  },
+  {
+    id: 4,
+    name: '芝芝桃桃',
+    nameEn: 'Cheese Peach',
+    desc: '芝士奶盖配新鲜桃子，甜蜜滋味',
+    descEn: 'Cheese milk foam with fresh peaches',
+    price: 29,
+    category: 'cheese',
+    image: '/images/logo.webp',
+    isNew: false
+  },
+  {
+    id: 5,
+    name: '生打椰椰',
+    nameEn: 'Fresh Coconut',
+    desc: '新鲜椰子水配椰肉，清爽解暑',
+    descEn: 'Fresh coconut water with coconut meat',
+    price: 25,
+    category: 'fruit',
+    image: '/images/logo.webp',
+    isNew: true
+  },
+  {
+    id: 6,
+    name: '厚芋泥波波茶',
+    nameEn: 'Taro Boba Tea',
+    desc: '浓郁芋泥配珍珠，口感绵密',
+    descEn: 'Rich taro with boba pearls',
+    price: 27,
+    category: 'tea',
+    image: '/images/logo.webp',
+    isNew: false
+  },
+  {
+    id: 7,
+    name: '生椰拿铁',
+    nameEn: 'Coconut Latte',
+    desc: '咖啡与椰子的完美结合',
+    descEn: 'Perfect combination of coffee and coconut',
+    price: 24,
+    category: 'coffee',
+    image: '/images/logo.webp',
+    isNew: false
+  },
+  {
+    id: 8,
+    name: '厚乳拿铁',
+    nameEn: 'Thick Milk Latte',
+    desc: '浓郁奶香咖啡，香醇顺滑',
+    descEn: 'Rich milky coffee',
+    price: 22,
+    category: 'coffee',
+    image: '/images/logo.webp',
+    isNew: false
   }
 ]
 

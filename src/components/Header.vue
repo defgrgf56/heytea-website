@@ -204,9 +204,17 @@ const closeMobileMenu = () => {
 }
 
 // 点击页面其他地方关闭菜单
-const handleClickOutside = () => {
-  isUserMenuOpen.value = false
-  isLanguageMenuOpen.value = false
+const handleClickOutside = (e) => {
+  // 检查点击是否在用户菜单或语言菜单区域内
+  const target = e.target
+  const isUserMenuClick = target.closest('.header__user-wrapper')
+  const isLanguageMenuClick = target.closest('.header__language-wrapper')
+  
+  // 如果点击在菜单区域外，关闭菜单
+  if (!isUserMenuClick && !isLanguageMenuClick) {
+    isUserMenuOpen.value = false
+    isLanguageMenuOpen.value = false
+  }
 }
 
 onMounted(() => {
@@ -214,6 +222,13 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   // 恢复用户登录状态
   userStore.restoreUserFromStorage()
+  
+  // 监听路由变化，关闭所有菜单
+  router.afterEach(() => {
+    isUserMenuOpen.value = false
+    isLanguageMenuOpen.value = false
+    isMobileMenuOpen.value = false
+  })
 })
 
 onUnmounted(() => {

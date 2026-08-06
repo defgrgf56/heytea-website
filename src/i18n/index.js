@@ -259,6 +259,25 @@ const messages = {
       totalPrice: '总价',
       addSuccess: '已添加到购物车',
       loading: '加载中...'
+    },
+    checkout: {
+      title: '确认订单',
+      orderItems: '订单商品',
+      deliveryAddress: '收货地址',
+      orderSummary: '订单摘要',
+      subtotal: '商品小计',
+      deliveryFee: '配送费',
+      total: '总计',
+      back: '返回',
+      submit: '提交订单',
+      submitting: '提交中...',
+      changeAddress: '更换地址',
+      addAddress: '添加收货地址',
+      noAddress: '暂无收货地址',
+      selectAddress: '请选择收货地址',
+      emptyCart: '购物车为空',
+      success: '订单提交成功！',
+      failed: '订单提交失败，请重试'
     }
   },
   'en': {
@@ -519,6 +538,25 @@ const messages = {
       totalPrice: 'Total',
       addSuccess: 'Added to cart',
       loading: 'Loading...'
+    },
+    checkout: {
+      title: 'Checkout',
+      orderItems: 'Order Items',
+      deliveryAddress: 'Delivery Address',
+      orderSummary: 'Order Summary',
+      subtotal: 'Subtotal',
+      deliveryFee: 'Delivery Fee',
+      total: 'Total',
+      back: 'Back',
+      submit: 'Place Order',
+      submitting: 'Submitting...',
+      changeAddress: 'Change Address',
+      addAddress: 'Add Address',
+      noAddress: 'No delivery address',
+      selectAddress: 'Please select a delivery address',
+      emptyCart: 'Cart is empty',
+      success: 'Order placed successfully!',
+      failed: 'Order failed, please try again'
     }
   }
 }

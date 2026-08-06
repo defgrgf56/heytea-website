@@ -251,11 +251,33 @@ export const productApi = {
     
     const response = await api.get(`/products?${queryString}`)
     
+    console.log('📦 商品列表原始响应:', response)
+    
+    // 从响应中提取 data 字段
+    const responseData = response.data
+    
+    console.log('📦 商品列表 data:', responseData)
+    
+    if (!responseData || !responseData.list) {
+      console.error('❌ 商品列表数据格式错误:', responseData)
+      return {
+        success: false,
+        data: {
+          items: [],
+          total: 0,
+          page: 1,
+          pageSize: 12,
+          totalPages: 0
+        },
+        message: '商品数据格式错误'
+      }
+    }
+    
     // 适配响应格式
     return {
       success: true,
       data: {
-        items: response.list.map(product => ({
+        items: responseData.list.map(product => ({
           id: product.id,
           name: product.name,
           nameEn: product.nameEn,
@@ -273,10 +295,10 @@ export const productApi = {
           toppings: product.specs?.toppings || ['珍珠', '椰果', '芋圆', '红豆'],
           sweetness: product.specs?.sweetness || ['标准糖', '少糖', '无糖']
         })),
-        total: response.total,
-        page: response.page,
-        pageSize: response.pageSize,
-        totalPages: Math.ceil(response.total / response.pageSize)
+        total: responseData.total,
+        page: responseData.page,
+        pageSize: responseData.pageSize,
+        totalPages: Math.ceil(responseData.total / responseData.pageSize)
       },
       message: '获取商品列表成功'
     }
@@ -293,7 +315,20 @@ export const productApi = {
     }
     
     // 真实 API 调用
-    const product = await api.get(`/products/${productId}`)
+    const response = await api.get(`/products/${productId}`)
+    
+    console.log('📦 商品详情原始响应:', response)
+    
+    // 从响应中提取 data 字段
+    const product = response.data
+    
+    if (!product) {
+      return {
+        success: false,
+        data: null,
+        message: '商品不存在'
+      }
+    }
     
     // 适配响应格式
     return {

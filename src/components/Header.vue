@@ -203,7 +203,20 @@ const closeMobileMenu = () => {
 
 // 点击页面其他地方关闭菜单
 const handleClickOutside = (e) => {
-  if (!e.target.closest('.header__user-wrapper') && !e.target.closest('.header__language-wrapper')) {
+  // 检查是否点击了用户菜单或语言菜单区域
+  const clickedUserMenu = e.target.closest('.header__user-wrapper')
+  const clickedLanguageMenu = e.target.closest('.header__language-wrapper')
+  const clickedNav = e.target.closest('.header__nav-item')
+  
+  // 如果点击了导航链接，先关闭菜单再让链接正常工作
+  if (clickedNav) {
+    isUserMenuOpen.value = false
+    isLanguageMenuOpen.value = false
+    return
+  }
+  
+  // 如果点击了其他地方，关闭所有菜单
+  if (!clickedUserMenu && !clickedLanguageMenu) {
     isUserMenuOpen.value = false
     isLanguageMenuOpen.value = false
   }

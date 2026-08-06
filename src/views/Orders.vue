@@ -94,7 +94,7 @@ function formatTime(isoTime) {
 
 // 查看订单详情
 function viewOrderDetail(orderId) {
-  router.push(`/orders/${orderId}`)
+  router.push(`/order/${orderId}`)
 }
 
 // 取消订单

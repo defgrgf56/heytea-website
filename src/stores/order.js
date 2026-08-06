@@ -77,6 +77,7 @@ export const useOrderStore = defineStore('order', () => {
     getOrderById,
     cancelOrder,
     reorder,
-    loadOrders
+    loadOrders,
+    loadOrdersFromStorage: loadOrders  // 别名，兼容 Profile 页面
   }
 })

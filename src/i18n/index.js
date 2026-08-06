@@ -159,6 +159,32 @@ const messages = {
       cancelSuccess: '订单已取消',
       reorderSuccess: '已重新下单'
     },
+    orderDetail: {
+      back: '返回',
+      loading: '加载中...',
+      notFound: '订单不存在',
+      viewAll: '查看所有订单',
+      orderInfo: '订单信息',
+      orderNo: '订单编号',
+      createTime: '下单时间',
+      status: '订单状态',
+      updateTime: '更新时间',
+      items: '商品列表',
+      toppings: '配料',
+      summary: '价格汇总',
+      subtotal: '商品小计',
+      deliveryFee: '配送费',
+      total: '总计',
+      contact: '联系客服',
+      cancelFailed: '取消订单失败',
+      statusDesc: {
+        pending: '订单已提交，等待确认',
+        confirmed: '订单已确认，准备制作',
+        preparing: '正在为您精心制作',
+        completed: '订单已完成，期待下次光临',
+        cancelled: '订单已取消'
+      }
+    },
     profile: {
       myAccount: '我的账户',
       myOrders: '我的订单',
@@ -365,6 +391,32 @@ const messages = {
       confirmCancel: 'Are you sure to cancel this order?',
       cancelSuccess: 'Order cancelled',
       reorderSuccess: 'Order placed again'
+    },
+    orderDetail: {
+      back: 'Back',
+      loading: 'Loading...',
+      notFound: 'Order not found',
+      viewAll: 'View All Orders',
+      orderInfo: 'Order Information',
+      orderNo: 'Order Number',
+      createTime: 'Order Time',
+      status: 'Status',
+      updateTime: 'Updated',
+      items: 'Items',
+      toppings: 'Toppings',
+      summary: 'Summary',
+      subtotal: 'Subtotal',
+      deliveryFee: 'Delivery Fee',
+      total: 'Total',
+      contact: 'Contact Us',
+      cancelFailed: 'Failed to cancel order',
+      statusDesc: {
+        pending: 'Order submitted, waiting for confirmation',
+        confirmed: 'Order confirmed, preparing',
+        preparing: 'Your order is being prepared',
+        completed: 'Order completed, see you next time',
+        cancelled: 'Order cancelled'
+      }
     },
     profile: {
       myAccount: 'My Account',

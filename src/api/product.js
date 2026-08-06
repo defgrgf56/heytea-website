@@ -258,6 +258,13 @@ export const productApi = {
     
     console.log('📦 商品列表 data:', responseData)
     
+    // 🔍 调试：打印第一个商品的完整数据
+    if (responseData.list && responseData.list.length > 0) {
+      console.log('🔍 第一个商品的原始数据:', responseData.list[0])
+      console.log('🔍 第一个商品的 ID:', responseData.list[0].id)
+      console.log('🔍 第一个商品的 _id:', responseData.list[0]._id)
+    }
+    
     if (!responseData || !responseData.list) {
       console.error('❌ 商品列表数据格式错误:', responseData)
       return {
@@ -274,27 +281,39 @@ export const productApi = {
     }
     
     // 适配响应格式
+    const mappedItems = responseData.list.map(product => {
+      console.log(`🔍 映射商品: ${product.name}, ID 字段:`, {
+        id: product.id,
+        _id: product._id,
+        productId: product.productId
+      })
+      
+      return {
+        id: product.id || product._id || product.productId,  // 尝试多个可能的 ID 字段
+        name: product.name,
+        nameEn: product.nameEn,
+        desc: product.description || product.desc,
+        descEn: product.descriptionEn || product.descEn,
+        price: product.price,
+        category: product.categoryCode,
+        image: product.imageUrl || product.image,
+        isNew: product.isNew,
+        isHot: product.isHot,
+        stock: product.stock,
+        status: product.status,
+        // 规格信息（详情页可能需要）
+        sizes: product.specs?.sizes || ['小杯', '中杯', '大杯'],
+        toppings: product.specs?.toppings || ['珍珠', '椰果', '芋圆', '红豆'],
+        sweetness: product.specs?.sweetness || ['标准糖', '少糖', '无糖']
+      }
+    })
+    
+    console.log('✅ 映射后的商品列表:', mappedItems)
+    
     return {
       success: true,
       data: {
-        items: responseData.list.map(product => ({
-          id: product.id,
-          name: product.name,
-          nameEn: product.nameEn,
-          desc: product.description || product.desc,
-          descEn: product.descriptionEn || product.descEn,
-          price: product.price,
-          category: product.categoryCode,
-          image: product.imageUrl || product.image,
-          isNew: product.isNew,
-          isHot: product.isHot,
-          stock: product.stock,
-          status: product.status,
-          // 规格信息（详情页可能需要）
-          sizes: product.specs?.sizes || ['小杯', '中杯', '大杯'],
-          toppings: product.specs?.toppings || ['珍珠', '椰果', '芋圆', '红豆'],
-          sweetness: product.specs?.sweetness || ['标准糖', '少糖', '无糖']
-        })),
+        items: mappedItems,
         total: responseData.total,
         page: responseData.page,
         pageSize: responseData.pageSize,
@@ -314,10 +333,21 @@ export const productApi = {
       return mockGetProductDetail(productId)
     }
     
+    console.log('🔍 准备请求商品详情，ID:', productId, '类型:', typeof productId)
+    
     // 真实 API 调用
     const response = await api.get(`/products/${productId}`)
     
     console.log('📦 商品详情原始响应:', response)
+    
+    // 检查响应是否成功
+    if (!response.success) {
+      return {
+        success: false,
+        data: null,
+        message: response.message || '获取商品详情失败'
+      }
+    }
     
     // 从响应中提取 data 字段
     const product = response.data

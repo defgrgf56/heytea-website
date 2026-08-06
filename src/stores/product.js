@@ -43,6 +43,19 @@ export const useProductStore = defineStore('product', () => {
           total: response.data.total,
           totalPages: response.data.totalPages
         }
+        
+        // 🔍 开发调试：打印实际的商品 ID
+        console.log('📦 商品列表加载成功，实际的商品 ID：')
+        console.table(products.value.map(p => ({ ID: p.id, 名称: p.name, 价格: p.price })))
+        
+        // 🎯 开发工具：快速跳转到商品详情
+        if (products.value.length > 0) {
+          console.log('💡 开发工具：在控制台输入以下命令快速跳转到第一个商品详情页：')
+          console.log(`   goToProduct('${products.value[0].id}')`)
+          window.goToProduct = (id) => {
+            window.location.href = `/product/${id || products.value[0].id}`
+          }
+        }
       } else {
         error.value = response.message
         products.value = []

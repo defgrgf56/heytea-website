@@ -111,12 +111,16 @@ async function request(url, options = {}) {
   try {
     const response = await fetch(`${API_BASE_URL}${url}`, config)
     
+    console.log('📡 Fetch 完成，状态码:', response.status, 'URL:', url)
+    
     // 尝试解析 JSON
     let data
     try {
       data = await response.json()
+      console.log('📦 解析后的数据:', data)
     } catch (e) {
       // 如果响应不是 JSON，返回空对象
+      console.warn('⚠️ 响应不是 JSON:', e)
       data = {}
     }
     
@@ -125,6 +129,7 @@ async function request(url, options = {}) {
     
     // 检查 HTTP 状态码
     if (!response.ok) {
+      console.error('❌ HTTP 状态码不是 2xx:', response.status)
       const error = new Error(data.message || `请求失败 (${response.status})`)
       error.status = response.status
       error.data = data

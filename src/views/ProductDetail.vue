@@ -91,11 +91,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
+import { useProductStore } from '@/stores/product'
 import { storeToRefs } from 'pinia'
 import toast from '@/utils/toast'
 
@@ -107,7 +108,7 @@ const cartStore = useCartStore()
 const productStore = useProductStore()
 const { isLoggedIn } = storeToRefs(userStore)
 
-const productId = parseInt(route.params.id)
+const productId = route.params.id  // 直接使用字符串 ID，不要 parseInt
 const product = ref(null)
 const loading = ref(true)
 
@@ -133,14 +134,21 @@ async function loadProductDetail() {
       if (response.success) {
         product.value = response.data
       } else {
-        toast.error(t('productDetail.loadError') || '加载商品失败')
-        // 可选：跳转回列表页
-        // router.push('/order')
+        toast.error(t('productDetail.loadError') || '该商品不存在，请从商品列表选择')
+        // 3秒后自动跳转回列表页
+        setTimeout(() => {
+          router.push('/order')
+        }, 2000)
       }
       loading.value = false
     }
   } catch (err) {
-    toast.error(t('productDetail.loadError') || '加载商品失败')
+    console.error('加载商品详情失败:', err)
+    toast.error('该商品不存在，请从商品列表选择')
+    // 3秒后自动跳转回列表页
+    setTimeout(() => {
+      router.push('/order')
+    }, 2000)
     loading.value = false
   }
 }
@@ -173,9 +181,9 @@ const quantity = ref(1)
 
 // 计算总价
 const totalPrice = computed(() => {
-  if (!product) return 0
+  if (!product.value) return 0
   
-  let price = product.price
+  let price = product.value.price
   
   // 加上杯型差价
   const size = sizes.find(s => s.id === selectedSize.value)
@@ -227,7 +235,7 @@ async function addToCart() {
   
   // 构建带规格的商品对象
   const cartItem = {
-    ...product,
+    ...product.value,
     // 添加用户选择的规格信息
     selectedSize: selectedSize.value,
     selectedToppings: [...selectedToppings.value],
@@ -236,7 +244,7 @@ async function addToCart() {
     price: totalPrice.value / quantity.value,
     quantity: quantity.value,
     // 生成唯一ID（基于商品ID和规格组合）
-    id: `${product.id}-${selectedSize.value}-${selectedToppings.value.sort().join('-')}-${selectedSweetness.value}`
+    id: `${product.value.id}-${selectedSize.value}-${selectedToppings.value.sort().join('-')}-${selectedSweetness.value}`
   }
   
   // 添加到购物车

@@ -217,6 +217,9 @@ const handleClickOutside = (e) => {
   }
 }
 
+// 保存路由守卫的清理函数
+let removeRouterGuard = null
+
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
   document.addEventListener('click', handleClickOutside)
@@ -224,7 +227,7 @@ onMounted(() => {
   userStore.restoreUserFromStorage()
   
   // 监听路由变化，关闭所有菜单
-  router.afterEach(() => {
+  removeRouterGuard = router.afterEach(() => {
     isUserMenuOpen.value = false
     isLanguageMenuOpen.value = false
     isMobileMenuOpen.value = false
@@ -234,6 +237,10 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
   document.removeEventListener('click', handleClickOutside)
+  // 清理路由守卫
+  if (removeRouterGuard) {
+    removeRouterGuard()
+  }
 })
 </script>
 

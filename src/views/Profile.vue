@@ -125,10 +125,14 @@ import { storeToRefs } from 'pinia'
 const router = useRouter()
 const { t, locale } = useI18n()
 const userStore = useUserStore()
-const { userName, userEmail, userAvatar } = storeToRefs(userStore)
 
 const showEditProfile = ref(false)
 const showChangePassword = ref(false)
+
+// 安全地获取用户信息的计算属性
+const userName = computed(() => userStore.user?.username || '')
+const userEmail = computed(() => userStore.user?.email || '')
+const userAvatar = computed(() => userStore.user?.avatar || '/images/default-avatar.png')
 
 const currentLang = computed(() => locale.value === 'zh-CN' ? '简体中文' : 'English')
 
@@ -144,10 +148,12 @@ const passwordForm = reactive({
 })
 
 // 监听用户数据变化，更新表单
-watch([userName, userEmail], () => {
-  editForm.nickname = userName.value || ''
-  editForm.email = userEmail.value || ''
-}, { immediate: true })
+watch(() => userStore.user, (user) => {
+  if (user) {
+    editForm.nickname = user.username || ''
+    editForm.email = user.email || ''
+  }
+}, { immediate: true, deep: true })
 
 // 保存资料
 function saveProfile() {

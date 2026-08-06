@@ -13,7 +13,7 @@ const defaultMockUsers = [
     username: 'admin',
     password: '123456',
     email: 'admin@heytea.com',
-    nickname: '管理员',
+    nickname: '用户一',
     avatar: '/images/logo.webp'
   },
   {

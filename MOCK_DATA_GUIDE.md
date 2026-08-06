@@ -39,7 +39,7 @@ VITE_API_BASE_URL=http://your-backend-server.com/api
 
 | 用户名 | 密码 | 邮箱 | 昵称 |
 |--------|------|------|------|
-| **admin** | 123456 | admin@heytea.com | 管理员 |
+| **admin** | 123456 | admin@heytea.com | 用户一 |
 | **zhangsan** | 123456 | zhangsan@heytea.com | 张三 |
 | **lisi** | 123456 | lisi@heytea.com | 李四 |
 
@@ -97,7 +97,7 @@ VITE_API_BASE_URL=http://your-backend-server.com/api
 3. 输入密码: 123456
 4. 点击"登录"
 5. 成功后跳转到首页
-6. Header 右上角显示"管理员"和头像
+6. Header 右上角显示"用户一"和头像
 7. 点击头像可看到菜单（个人中心、退出登录）
 ```
 

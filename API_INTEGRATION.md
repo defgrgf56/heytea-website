@@ -288,7 +288,7 @@ login(credentials) {
               id: 1,
               username: 'admin',
               email: 'admin@heytea.com',
-              nickname: '管理员',
+              nickname: '用户一',
               avatar: '/images/logo.webp'
             }
           }

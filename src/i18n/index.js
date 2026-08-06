@@ -277,7 +277,8 @@ const messages = {
       selectAddress: '请选择收货地址',
       emptyCart: '购物车为空',
       success: '订单提交成功！',
-      failed: '订单提交失败，请重试'
+      failed: '订单提交失败，请重试',
+      manageAddresses: '管理收货地址'
     }
   },
   'en': {
@@ -556,7 +557,8 @@ const messages = {
       selectAddress: 'Please select a delivery address',
       emptyCart: 'Cart is empty',
       success: 'Order placed successfully!',
-      failed: 'Order failed, please try again'
+      failed: 'Order failed, please try again',
+      manageAddresses: 'Manage Addresses'
     }
   }
 }

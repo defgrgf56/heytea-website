@@ -21,12 +21,13 @@
       <!-- 收货地址 -->
       <div class="section">
         <h2 class="section-title">{{ t('checkout.deliveryAddress') }}</h2>
-        <div v-if="defaultAddress" class="address-card">
-          <p class="address-name">{{ defaultAddress.name }} {{ defaultAddress.phone }}</p>
+        <div v-if="selectedAddress" class="address-card">
+          <div v-if="selectedAddress.isDefault" class="default-badge">{{ t('address.default') }}</div>
+          <p class="address-name">{{ selectedAddress.name }} {{ selectedAddress.phone }}</p>
           <p class="address-detail">
-            {{ defaultAddress.province }} {{ defaultAddress.city }} {{ defaultAddress.district }} {{ defaultAddress.detail }}
+            {{ selectedAddress.province }} {{ selectedAddress.city }} {{ selectedAddress.district }} {{ selectedAddress.detail }}
           </p>
-          <button class="btn-change" @click="goToProfile">{{ t('checkout.changeAddress') }}</button>
+          <button class="btn-change" @click="showAddressSelector = true">{{ t('checkout.changeAddress') }}</button>
         </div>
         <div v-else class="no-address">
           <p>{{ t('checkout.noAddress') }}</p>
@@ -57,17 +58,57 @@
         <button 
           class="btn-submit" 
           @click="submitOrder"
-          :disabled="!defaultAddress || isSubmitting"
+          :disabled="!selectedAddress || isSubmitting"
         >
           {{ isSubmitting ? t('checkout.submitting') : t('checkout.submit') }}
         </button>
       </div>
     </div>
+    
+    <!-- 地址选择弹窗 -->
+    <teleport to="body">
+      <transition name="fade">
+        <div v-if="showAddressSelector" class="modal-overlay" @click="showAddressSelector = false">
+          <div class="modal-content" @click.stop>
+            <div class="modal-header">
+              <h3>{{ t('checkout.selectAddress') }}</h3>
+              <button class="close-btn" @click="showAddressSelector = false">×</button>
+            </div>
+            <div class="modal-body">
+              <div v-if="allAddresses.length === 0" class="empty-state">
+                <p>{{ t('address.empty') }}</p>
+                <button class="btn-primary" @click="goToProfileAndClose">{{ t('checkout.addAddress') }}</button>
+              </div>
+              <div v-else class="address-list">
+                <div
+                  v-for="address in allAddresses"
+                  :key="address.id"
+                  :class="['address-item', { selected: selectedAddress?.id === address.id }]"
+                  @click="selectAddress(address)"
+                >
+                  <div v-if="address.isDefault" class="default-badge">{{ t('address.default') }}</div>
+                  <div class="address-content">
+                    <p class="address-name">{{ address.name }} {{ address.phone }}</p>
+                    <p class="address-detail">
+                      {{ address.province }} {{ address.city }} {{ address.district }} {{ address.detail }}
+                    </p>
+                  </div>
+                  <div v-if="selectedAddress?.id === address.id" class="check-icon">✓</div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn-secondary" @click="goToProfileAndClose">{{ t('checkout.manageAddresses') }}</button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useCartStore } from '@/stores/cart'
@@ -83,10 +124,20 @@ const addressStore = useAddressStore()
 
 const cartItems = computed(() => cartStore.items)
 const totalPrice = computed(() => cartStore.totalPrice)
+const allAddresses = computed(() => addressStore.addresses)
 const defaultAddress = computed(() => addressStore.defaultAddress)
 
 const deliveryFee = ref(5)
 const isSubmitting = ref(false)
+const showAddressSelector = ref(false)
+const selectedAddress = ref(null)
+
+// 初始化时设置默认地址
+onMounted(() => {
+  if (defaultAddress.value) {
+    selectedAddress.value = defaultAddress.value
+  }
+})
 
 function goBack() {
   router.back()
@@ -96,8 +147,18 @@ function goToProfile() {
   router.push('/profile')
 }
 
+function goToProfileAndClose() {
+  showAddressSelector.value = false
+  router.push('/profile')
+}
+
+function selectAddress(address) {
+  selectedAddress.value = address
+  showAddressSelector.value = false
+}
+
 async function submitOrder() {
-  if (!defaultAddress.value) {
+  if (!selectedAddress.value) {
     toast.warning(t('checkout.selectAddress'))
     return
   }
@@ -114,7 +175,7 @@ async function submitOrder() {
     const order = orderStore.createOrder({
       items: cartItems.value,
       totalAmount: parseFloat(totalPrice.value) + deliveryFee.value,
-      address: defaultAddress.value
+      address: selectedAddress.value
     })
     
     // 清空购物车
@@ -221,6 +282,18 @@ async function submitOrder() {
   border-radius: 8px;
   position: relative;
   
+  .default-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background-color: #ff6b00;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
   .address-name {
     font-size: 15px;
     font-weight: 600;
@@ -230,15 +303,16 @@ async function submitOrder() {
   .address-detail {
     font-size: 14px;
     color: #666;
-    margin: 0;
+    margin: 0 0 12px 0;
     line-height: 1.6;
+    padding-right: 80px;
   }
   
   .btn-change {
     position: absolute;
-    top: 16px;
+    bottom: 16px;
     right: 16px;
-    padding: 6px 16px;
+    padding: 8px 20px;
     background-color: white;
     border: 1px solid #ddd;
     border-radius: 6px;
@@ -248,6 +322,7 @@ async function submitOrder() {
     
     &:hover {
       border-color: #1a1a1a;
+      background-color: #f8f8f8;
     }
   }
 }
@@ -354,5 +429,199 @@ async function submitOrder() {
       height: 50px;
     }
   }
+}
+
+/* 地址选择弹窗 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+  }
+  
+  .close-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    font-size: 32px;
+    line-height: 1;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      color: #333;
+    }
+  }
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  
+  p {
+    font-size: 14px;
+    color: #999;
+    margin: 0 0 16px 0;
+  }
+  
+  .btn-primary {
+    padding: 10px 24px;
+    background-color: #1a1a1a;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    
+    &:hover {
+      background-color: #000;
+    }
+  }
+}
+
+.address-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.address-item {
+  background-color: #f8f8f8;
+  padding: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  
+  &:hover {
+    background-color: #f0f0f0;
+  }
+  
+  &.selected {
+    border-color: #1a1a1a;
+    background-color: #fff;
+  }
+  
+  .default-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background-color: #ff6b00;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .address-content {
+    padding-right: 40px;
+  }
+  
+  .address-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+  }
+  
+  .address-detail {
+    font-size: 14px;
+    color: #666;
+    margin: 0;
+    line-height: 1.6;
+  }
+  
+  .check-icon {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    width: 24px;
+    height: 24px;
+    background-color: #1a1a1a;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+  }
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: center;
+  
+  .btn-secondary {
+    padding: 10px 24px;
+    background-color: white;
+    color: #666;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    
+    &:hover {
+      border-color: #999;
+      background-color: #f8f8f8;
+    }
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

@@ -171,10 +171,11 @@
           </div>
           <div class="form-group">
             <label>{{ t('address.region') }}</label>
-            <div class="region-select">
-              <input v-model="addressForm.province" type="text" class="form-input" :placeholder="t('address.province')" />
-              <input v-model="addressForm.city" type="text" class="form-input" :placeholder="t('address.city')" />
-              <input v-model="addressForm.district" type="text" class="form-input" :placeholder="t('address.district')" />
+            <div class="region-input" @click="openRegionPicker">
+              <span :class="['region-text', { placeholder: !addressForm.province }]">
+                {{ regionDisplayText }}
+              </span>
+              <span class="region-arrow">›</span>
             </div>
           </div>
           <div class="form-group">
@@ -198,6 +199,61 @@
         </div>
       </div>
     </transition>
+    
+    <!-- 省市区选择器弹窗 -->
+    <transition name="slide-up">
+      <div v-if="showRegionPicker" class="region-picker-overlay" @click="showRegionPicker = false">
+        <div class="region-picker" @click.stop>
+          <div class="region-picker-header">
+            <button v-if="regionPickerStep !== 'province'" class="back-btn" @click="goBackRegionPicker">
+              ‹
+            </button>
+            <span class="region-picker-title">
+              {{ regionPickerStep === 'province' ? '选择省份' : regionPickerStep === 'city' ? '选择城市' : '选择区县' }}
+            </span>
+            <button class="close-btn" @click="showRegionPicker = false">✕</button>
+          </div>
+          
+          <div class="region-picker-body">
+            <!-- 省份列表 -->
+            <div v-if="regionPickerStep === 'province'" class="region-list">
+              <div
+                v-for="province in provinces"
+                :key="province"
+                class="region-item"
+                @click="selectProvince(province)"
+              >
+                {{ province }}
+              </div>
+            </div>
+            
+            <!-- 城市列表 -->
+            <div v-if="regionPickerStep === 'city'" class="region-list">
+              <div
+                v-for="city in cities"
+                :key="city"
+                class="region-item"
+                @click="selectCity(city)"
+              >
+                {{ city }}
+              </div>
+            </div>
+            
+            <!-- 区县列表 -->
+            <div v-if="regionPickerStep === 'district'" class="region-list">
+              <div
+                v-for="district in districts"
+                :key="district"
+                class="region-item"
+                @click="selectDistrict(district)"
+              >
+                {{ district }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -207,6 +263,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useAddressStore } from '@/stores/address'
+import { getProvinces, getCities, getDistricts } from '@/utils/regions'
 import toast from '@/utils/toast'
 
 const router = useRouter()
@@ -219,6 +276,8 @@ const showChangePassword = ref(false)
 const showAddressList = ref(false)
 const showAddressForm = ref(false)
 const editingAddressId = ref(null)
+const showRegionPicker = ref(false)
+const regionPickerStep = ref('province') // 'province', 'city', 'district'
 
 // 安全地获取用户信息的计算属性
 const userName = computed(() => userStore.user?.nickname || userStore.user?.username || '')
@@ -246,6 +305,17 @@ const addressForm = reactive({
   district: '',
   detail: '',
   isDefault: false
+})
+
+// 省市区数据
+const provinces = computed(() => getProvinces())
+const cities = computed(() => {
+  return addressForm.province ? getCities(addressForm.province) : []
+})
+const districts = computed(() => {
+  return addressForm.province && addressForm.city 
+    ? getDistricts(addressForm.province, addressForm.city) 
+    : []
 })
 
 // 地址列表
@@ -374,6 +444,46 @@ function setDefaultAddress(id) {
   addressStore.setDefaultAddress(id)
   toast.success(t('address.setDefaultSuccess'))
 }
+
+// 省市区选择器
+function openRegionPicker() {
+  regionPickerStep.value = 'province'
+  showRegionPicker.value = true
+}
+
+function selectProvince(province) {
+  addressForm.province = province
+  addressForm.city = ''
+  addressForm.district = ''
+  regionPickerStep.value = 'city'
+}
+
+function selectCity(city) {
+  addressForm.city = city
+  addressForm.district = ''
+  regionPickerStep.value = 'district'
+}
+
+function selectDistrict(district) {
+  addressForm.district = district
+  showRegionPicker.value = false
+}
+
+function goBackRegionPicker() {
+  if (regionPickerStep.value === 'district') {
+    regionPickerStep.value = 'city'
+  } else if (regionPickerStep.value === 'city') {
+    regionPickerStep.value = 'province'
+  }
+}
+
+const regionDisplayText = computed(() => {
+  const parts = []
+  if (addressForm.province) parts.push(addressForm.province)
+  if (addressForm.city) parts.push(addressForm.city)
+  if (addressForm.district) parts.push(addressForm.district)
+  return parts.length > 0 ? parts.join(' / ') : t('address.region')
+})
 </script>
 
 <style lang="scss" scoped>
@@ -728,6 +838,147 @@ function setDefaultAddress(id) {
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
+}
+
+.region-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: white;
+  
+  &:hover {
+    border-color: #1a1a1a;
+    background-color: #f8f8f8;
+  }
+  
+  .region-text {
+    flex: 1;
+    font-size: 15px;
+    color: #1a1a1a;
+    
+    &.placeholder {
+      color: #999;
+    }
+  }
+  
+  .region-arrow {
+    font-size: 20px;
+    color: #999;
+  }
+}
+
+// 省市区选择器
+.region-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2001;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.region-picker {
+  background-color: white;
+  width: 100%;
+  max-width: 600px;
+  max-height: 70vh;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.region-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+  
+  .back-btn,
+  .close-btn {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    font-size: 24px;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      color: #1a1a1a;
+    }
+  }
+  
+  .back-btn {
+    left: 12px;
+  }
+  
+  .close-btn {
+    right: 12px;
+  }
+  
+  .region-picker-title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
+.region-picker-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.region-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.region-item {
+  padding: 14px 20px;
+  font-size: 15px;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f5f5f5;
+  
+  &:hover {
+    background-color: #f8f8f8;
+  }
+  
+  &:active {
+    background-color: #f0f0f0;
+  }
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-enter-from {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
 }
 
 .form-textarea {

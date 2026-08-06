@@ -95,6 +95,7 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
+import { useCartStore } from '@/stores/cart'
 import { storeToRefs } from 'pinia'
 import toast from '@/utils/toast'
 
@@ -102,6 +103,7 @@ const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()
 const userStore = useUserStore()
+const cartStore = useCartStore()
 const { isLoggedIn } = storeToRefs(userStore)
 
 // 模拟产品数据
@@ -213,8 +215,29 @@ async function addToCart() {
     return
   }
   
+  // 构建带规格的商品对象
+  const cartItem = {
+    ...product,
+    // 添加用户选择的规格信息
+    selectedSize: selectedSize.value,
+    selectedToppings: [...selectedToppings.value],
+    selectedSweetness: selectedSweetness.value,
+    // 使用计算后的总价作为单价（包含规格）
+    price: totalPrice.value / quantity.value,
+    quantity: quantity.value,
+    // 生成唯一ID（基于商品ID和规格组合）
+    id: `${product.id}-${selectedSize.value}-${selectedToppings.value.sort().join('-')}-${selectedSweetness.value}`
+  }
+  
+  // 添加到购物车
+  for (let i = 0; i < quantity.value; i++) {
+    cartStore.addItem(cartItem)
+  }
+  
   toast.success(t('productDetail.addSuccess'))
-  // TODO: 实际添加到购物车逻辑
+  
+  // 可选：跳转回点餐页或停留在当前页
+  // router.push('/order')
 }
 </script>
 

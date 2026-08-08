@@ -3,7 +3,7 @@
     <div v-if="product" class="product-container">
       <!-- 产品图片 -->
       <div class="product-image-section">
-        <img :src="product.image" :alt="product.name" class="product-image" />
+        <img :src="getProxyImageUrl(product.image || product.imageUrl)" :alt="product.name" class="product-image" />
         <div v-if="product.isNew" class="product-badge">{{ t('order.new') }}</div>
       </div>
 
@@ -99,6 +99,7 @@ import { useCartStore } from '@/stores/cart'
 import { useProductStore } from '@/stores/product'
 import { storeToRefs } from 'pinia'
 import toast from '@/utils/toast'
+import { getProxyImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()

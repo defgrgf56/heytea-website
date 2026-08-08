@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { productApi } from '@/api/product'
+import { getProxyImageUrl } from '@/utils/image'
 
 export const useProductStore = defineStore('product', () => {
   // 商品列表
@@ -36,7 +37,13 @@ export const useProductStore = defineStore('product', () => {
       const response = await productApi.getProducts(params)
       
       if (response.success) {
-        products.value = response.data.items
+        // 转换图片 URL 为代理路径
+        products.value = response.data.items.map(product => ({
+          ...product,
+          image: getProxyImageUrl(product.image || product.imageUrl),
+          imageUrl: getProxyImageUrl(product.image || product.imageUrl)
+        }))
+        
         pagination.value = {
           page: response.data.page,
           pageSize: response.data.pageSize,
@@ -87,6 +94,13 @@ export const useProductStore = defineStore('product', () => {
   async function fetchProductDetail(productId) {
     try {
       const response = await productApi.getProductDetail(productId)
+      
+      // 转换图片 URL
+      if (response.success && response.data) {
+        response.data.image = getProxyImageUrl(response.data.image || response.data.imageUrl)
+        response.data.imageUrl = getProxyImageUrl(response.data.image || response.data.imageUrl)
+      }
+      
       return response
     } catch (err) {
       console.error('获取商品详情失败:', err)

@@ -1,7 +1,7 @@
 <template>
   <div class="product-card" @click="goToDetail">
     <div class="product-card__image">
-      <img :src="product.image" :alt="product.name" />
+      <img :src="getProxyImageUrl(product.image || product.imageUrl)" :alt="product.name" />
       <div v-if="product.isNew" class="product-card__badge">NEW</div>
       <div v-if="product.isHot" class="product-card__badge product-card__badge--hot">HOT</div>
     </div>
@@ -30,6 +30,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
+import { getProxyImageUrl } from '@/utils/image'
 
 const props = defineProps({
   product: {

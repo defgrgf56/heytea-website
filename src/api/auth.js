@@ -358,7 +358,18 @@ export const authApi = {
     // 真实后端 API：使用 RSA 加密注册
     try {
       // 1. 获取 Challenge
-      const challenge = await api.get('/auth/challenge?purpose=register')
+      const challengeResponse = await api.get('/auth/challenge?purpose=register')
+      console.log('📦 Challenge 完整响应:', challengeResponse)
+      
+      // 从响应中提取 data 字段（后端返回格式：{success, message, data}）
+      const challenge = challengeResponse.data
+      
+      if (!challenge || !challenge.publicKey) {
+        console.error('❌ Challenge 数据无效:', challenge)
+        throw new Error('未获取到公钥，请检查网络连接')
+      }
+      
+      console.log('✅ 公钥已获取，准备加密...')
       
       // 2. 加密注册数据
       const payload = await encryptPayload(challenge.publicKey, {
@@ -371,18 +382,25 @@ export const authApi = {
         nickname: userData.nickname || userData.username
       })
       
+      console.log('✅ 数据已加密，提交注册...')
+      
       // 3. 提交加密后的注册请求
-      const response = await api.post('/auth/register', {
+      const registerResponse = await api.post('/auth/register', {
         credential: {
           challengeId: challenge.challengeId,
           payload
         }
       })
       
+      console.log('📦 注册完整响应:', registerResponse)
+      
+      // 从响应中提取 data 字段
+      const responseData = registerResponse.data
+      
       // 4. 返回成功响应
       return {
         success: true,
-        data: { user: response },
+        data: { user: responseData.user },
         message: '注册成功，请登录'
       }
     } catch (error) {

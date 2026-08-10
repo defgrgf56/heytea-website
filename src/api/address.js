@@ -1,283 +1,136 @@
 import { api } from './index'
 
-// 🎭 Mock 模式开关（从环境变量读取）
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
-
-/**
- * 模拟网络延迟
- */
-function mockDelay(ms = 300) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
 /**
  * 地址相关 API
+ * 注意：地址接口始终调用真实后端 API，不使用 Mock 模式
  */
 export const addressApi = {
   /**
    * 获取地址列表
-   * @returns {Promise<Object>}
+   * @returns {Promise<Array>}
    */
   async getAddresses() {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const addresses = JSON.parse(localStorage.getItem('addresses') || '[]')
-      
-      return {
-        success: true,
-        data: addresses,
-        message: '获取地址列表成功'
-      }
+    try {
+      const response = await api.get('/addresses')
+      // 后端返回的是数组，直接返回
+      return response || []
+    } catch (error) {
+      console.error('❌ 获取地址列表失败:', error)
+      // 失败时返回空数组，不中断用户流程
+      return []
     }
-    
-    // 真实 API
-    return api.get('/addresses')
+  },
+
+  /**
+   * 获取默认地址
+   * @returns {Promise<Object|null>}
+   */
+  async getDefaultAddress() {
+    try {
+      const response = await api.get('/addresses/default')
+      // 后端可能返回 null（没有地址时）
+      return response || null
+    } catch (error) {
+      console.error('❌ 获取默认地址失败:', error)
+      return null
+    }
   },
 
   /**
    * 获取地址详情
-   * @param {number} addressId - 地址 ID
+   * @param {string} addressId - 地址 ID (ObjectId)
    * @returns {Promise<Object>}
    */
   async getAddressDetail(addressId) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const addresses = JSON.parse(localStorage.getItem('addresses') || '[]')
-      const address = addresses.find(a => a.id === parseInt(addressId))
-      
-      if (address) {
-        return {
-          success: true,
-          data: address,
-          message: '获取地址详情成功'
-        }
-      }
-      
-      return {
-        success: false,
-        data: null,
-        message: '地址不存在'
-      }
-    }
-    
-    // 真实 API
     return api.get(`/addresses/${addressId}`)
   },
 
   /**
    * 添加地址
    * @param {Object} addressData - 地址数据
+   * @param {string} addressData.receiverName - 收件人姓名（或使用兼容字段 name）
+   * @param {string} addressData.receiverPhone - 收件人电话（或使用兼容字段 phone）
+   * @param {string} addressData.province - 省份
+   * @param {string} addressData.city - 城市
+   * @param {string} addressData.district - 区县
+   * @param {string} addressData.detailAddress - 详细地址（或使用兼容字段 detail）
+   * @param {string} addressData.label - 地址标签（公司/家/学校等）
+   * @param {boolean} addressData.isDefault - 是否默认地址
    * @returns {Promise<Object>}
    */
   async addAddress(addressData) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const addresses = JSON.parse(localStorage.getItem('addresses') || '[]')
-      
-      const newAddress = {
-        id: Date.now(),
-        ...addressData,
-        createTime: new Date().toISOString(),
-        updateTime: new Date().toISOString()
-      }
-      
-      // 如果是默认地址，取消其他地址的默认状态
-      if (newAddress.isDefault) {
-        addresses.forEach(addr => {
-          addr.isDefault = false
-        })
-      }
-      
-      // 如果是第一个地址，自动设为默认
-      if (addresses.length === 0) {
-        newAddress.isDefault = true
-      }
-      
-      addresses.push(newAddress)
-      localStorage.setItem('addresses', JSON.stringify(addresses))
-      
-      return {
-        success: true,
-        data: newAddress,
-        message: '添加地址成功'
-      }
+    // 统一使用正式字段名，同时兼容旧字段名
+    const payload = {
+      receiverName: addressData.receiverName || addressData.name,
+      receiverPhone: addressData.receiverPhone || addressData.phone,
+      province: addressData.province,
+      city: addressData.city,
+      district: addressData.district,
+      detailAddress: addressData.detailAddress || addressData.detail,
+      label: addressData.label || '',
+      isDefault: addressData.isDefault || false
     }
     
-    // 真实 API
-    return api.post('/addresses', addressData)
+    console.log('📤 添加地址请求:', payload)
+    return api.post('/addresses', payload)
   },
 
   /**
    * 更新地址
-   * @param {number} addressId - 地址 ID
-   * @param {Object} addressData - 新地址数据
+   * @param {string} addressId - 地址 ID
+   * @param {Object} addressData - 新地址数据（部分字段更新）
    * @returns {Promise<Object>}
    */
   async updateAddress(addressId, addressData) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const addresses = JSON.parse(localStorage.getItem('addresses') || '[]')
-      const index = addresses.findIndex(a => a.id === parseInt(addressId))
-      
-      if (index > -1) {
-        // 如果更新为默认地址，取消其他地址的默认状态
-        if (addressData.isDefault) {
-          addresses.forEach(addr => {
-            addr.isDefault = false
-          })
-        }
-        
-        addresses[index] = {
-          ...addresses[index],
-          ...addressData,
-          updateTime: new Date().toISOString()
-        }
-        
-        localStorage.setItem('addresses', JSON.stringify(addresses))
-        
-        return {
-          success: true,
-          data: addresses[index],
-          message: '更新地址成功'
-        }
-      }
-      
-      return {
-        success: false,
-        data: null,
-        message: '地址不存在'
-      }
+    // 只发送需要更新的字段
+    const payload = {}
+    
+    if (addressData.receiverName !== undefined || addressData.name !== undefined) {
+      payload.receiverName = addressData.receiverName || addressData.name
+    }
+    if (addressData.receiverPhone !== undefined || addressData.phone !== undefined) {
+      payload.receiverPhone = addressData.receiverPhone || addressData.phone
+    }
+    if (addressData.province !== undefined) {
+      payload.province = addressData.province
+    }
+    if (addressData.city !== undefined) {
+      payload.city = addressData.city
+    }
+    if (addressData.district !== undefined) {
+      payload.district = addressData.district
+    }
+    if (addressData.detailAddress !== undefined || addressData.detail !== undefined) {
+      payload.detailAddress = addressData.detailAddress || addressData.detail
+    }
+    if (addressData.label !== undefined) {
+      payload.label = addressData.label
+    }
+    if (addressData.isDefault !== undefined) {
+      payload.isDefault = addressData.isDefault
     }
     
-    // 真实 API
-    return api.put(`/addresses/${addressId}`, addressData)
+    console.log('📤 更新地址请求:', payload)
+    return api.put(`/addresses/${addressId}`, payload)
   },
 
   /**
-   * 删除地址
-   * @param {number} addressId - 地址 ID
+   * 删除地址（软删除）
+   * @param {string} addressId - 地址 ID
    * @returns {Promise<Object>}
    */
   async deleteAddress(addressId) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const addresses = JSON.parse(localStorage.getItem('addresses') || '[]')
-      const index = addresses.findIndex(a => a.id === parseInt(addressId))
-      
-      if (index > -1) {
-        const wasDefault = addresses[index].isDefault
-        addresses.splice(index, 1)
-        
-        // 如果删除的是默认地址，将第一个地址设为默认
-        if (wasDefault && addresses.length > 0) {
-          addresses[0].isDefault = true
-        }
-        
-        localStorage.setItem('addresses', JSON.stringify(addresses))
-        
-        return {
-          success: true,
-          data: null,
-          message: '删除地址成功'
-        }
-      }
-      
-      return {
-        success: false,
-        data: null,
-        message: '地址不存在'
-      }
-    }
-    
-    // 真实 API
     return api.delete(`/addresses/${addressId}`)
   },
 
   /**
    * 设置默认地址
-   * @param {number} addressId - 地址 ID
+   * @param {string} addressId - 地址 ID
    * @returns {Promise<Object>}
    */
   async setDefaultAddress(addressId) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const addresses = JSON.parse(localStorage.getItem('addresses') || '[]')
-      
-      // 取消所有地址的默认状态
-      addresses.forEach(addr => {
-        addr.isDefault = false
-      })
-      
-      // 设置指定地址为默认
-      const index = addresses.findIndex(a => a.id === parseInt(addressId))
-      if (index > -1) {
-        addresses[index].isDefault = true
-        addresses[index].updateTime = new Date().toISOString()
-        
-        localStorage.setItem('addresses', JSON.stringify(addresses))
-        
-        return {
-          success: true,
-          data: addresses[index],
-          message: '设置默认地址成功'
-        }
-      }
-      
-      return {
-        success: false,
-        data: null,
-        message: '地址不存在'
-      }
-    }
-    
-    // 真实 API
     return api.put(`/addresses/${addressId}/default`)
-  },
-
-  /**
-   * 获取默认地址
-   * @returns {Promise<Object>}
-   */
-  async getDefaultAddress() {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const addresses = JSON.parse(localStorage.getItem('addresses') || '[]')
-      const defaultAddress = addresses.find(a => a.isDefault)
-      
-      if (defaultAddress) {
-        return {
-          success: true,
-          data: defaultAddress,
-          message: '获取默认地址成功'
-        }
-      }
-      
-      // 如果没有默认地址，返回第一个地址
-      if (addresses.length > 0) {
-        return {
-          success: true,
-          data: addresses[0],
-          message: '获取默认地址成功'
-        }
-      }
-      
-      return {
-        success: false,
-        data: null,
-        message: '暂无收货地址'
-      }
-    }
-    
-    // 真实 API
-    return api.get('/addresses/default')
   }
 }
 
-console.log('📍 地址 API 已加载 (Mock 模式)')
+console.log('📍 地址 API 已加载（真实后端模式）')

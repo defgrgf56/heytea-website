@@ -159,36 +159,58 @@ function selectAddress(address) {
 
 async function submitOrder() {
   if (!selectedAddress.value) {
-    toast.warning(t('checkout.selectAddress'))
+    toast.warning(t('checkout.selectAddress') || '请选择收货地址')
     return
   }
   
   if (cartItems.value.length === 0) {
-    toast.warning(t('checkout.emptyCart'))
+    toast.warning(t('checkout.emptyCart') || '购物车是空的')
     return
   }
   
   isSubmitting.value = true
   
   try {
-    // 创建订单
-    const order = orderStore.createOrder({
-      items: cartItems.value,
-      totalAmount: parseFloat(totalPrice.value) + deliveryFee.value,
-      address: selectedAddress.value
-    })
+    console.log('📦 开始提交订单...')
+    console.log('📍 收货地址:', selectedAddress.value)
+    console.log('🛒 购物车商品:', cartItems.value.length, '件')
     
-    // 清空购物车
-    cartStore.clearCart()
+    // ✅ 调用真实后端 API 创建订单
+    // 注意：后端会从服务端购物车读取商品，这里只需要传递地址和支付方式
+    const { orderApi, generateClientRequestId } = await import('@/api/order')
+    
+    const orderData = {
+      addressId: selectedAddress.value.id,  // 地址 ObjectId
+      payMethod: 'mock_wechat',  // 支付方式（教学占位值）
+      remark: '',  // 备注（可选）
+      clientRequestId: generateClientRequestId()  // 防重复提交
+    }
+    
+    const newOrder = await orderApi.createOrder(orderData)
+    
+    console.log('✅ 订单创建成功:', newOrder)
+    
+    // 清空本地购物车（后端已经清空服务器购物车）
+    await cartStore.clearCart()
     
     // 显示成功消息
-    toast.success(t('checkout.success'))
+    toast.success(t('checkout.success') || '订单提交成功')
     
-    // 跳转到订单详情页
-    router.push(`/order/${order.id}`)
+    // 跳转到支付页面
+    router.push(`/payment/${newOrder.id}`)
   } catch (error) {
-    toast.error(t('checkout.failed'))
-    console.error('提交订单失败:', error)
+    console.error('❌ 提交订单失败:', error)
+    
+    // 根据错误类型显示不同的提示
+    if (error.message?.includes('购物车')) {
+      toast.error('购物车为空或商品已失效，请重新添加商品')
+    } else if (error.message?.includes('地址')) {
+      toast.error('收货地址无效，请重新选择')
+    } else if (error.message?.includes('库存')) {
+      toast.error('部分商品库存不足，请调整购物车')
+    } else {
+      toast.error(error.message || t('checkout.failed') || '订单提交失败，请重试')
+    }
   } finally {
     isSubmitting.value = false
   }

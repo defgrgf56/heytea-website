@@ -24,6 +24,8 @@ function requestInterceptor(url, config) {
 
 /**
  * 响应拦截器 - 在收到响应后执行
+ * 根据接口文档，所有响应格式为 {success, message, data}
+ * 这里自动解包 data，让业务代码直接使用
  */
 function responseInterceptor(url, response, data) {
   // 开发环境下打印响应日志
@@ -32,6 +34,22 @@ function responseInterceptor(url, response, data) {
     console.log('📦 Response Data:', data)
   }
   
+  // 如果响应包含 success 和 data 字段，说明是标准格式
+  if (data && typeof data === 'object' && 'success' in data) {
+    // 检查 success 字段
+    if (!data.success) {
+      // success 为 false，说明业务失败
+      const error = new Error(data.message || '请求失败')
+      error.code = data.code
+      error.details = data.details
+      throw error
+    }
+    
+    // success 为 true，返回 data 字段（业务数据）
+    return data.data
+  }
+  
+  // 如果不是标准格式（如某些特殊接口），直接返回原始数据
   return data
 }
 
@@ -40,6 +58,51 @@ function responseInterceptor(url, response, data) {
  */
 function handleError(error, url, response) {
   console.error('❌ API Error:', url, error)
+  
+  // 如果是业务错误（有 code 字段），优先显示业务错误信息
+  if (error.code) {
+    // 特殊错误码处理
+    switch (error.code) {
+      case 'UNAUTHORIZED':
+      case 'AUTH_CHALLENGE_EXPIRED':
+        // 未认证或 Token 失效
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        toast.error('登录已过期，请重新登录')
+        router.push('/login')
+        break
+        
+      case 'FORBIDDEN':
+        toast.error('无权限访问')
+        break
+        
+      case 'ACCOUNT_LOCKED':
+        toast.error('登录失败次数过多，账号已锁定')
+        break
+        
+      case 'USER_DISABLED':
+        toast.error('账号已被禁用')
+        break
+        
+      case 'INVALID_CREDENTIALS':
+        toast.error('用户名或密码错误')
+        break
+        
+      case 'USERNAME_EXISTS':
+        toast.error('用户名已存在')
+        break
+        
+      case 'EMAIL_EXISTS':
+        toast.error('邮箱已被注册')
+        break
+        
+      default:
+        // 显示业务错误消息
+        toast.error(error.message || '操作失败')
+    }
+    
+    throw error
+  }
   
   // 根据 HTTP 状态码处理
   if (response) {
@@ -62,9 +125,24 @@ function handleError(error, url, response) {
         toast.error('请求的资源不存在')
         break
         
+      case 409:
+        // 业务冲突
+        toast.error(error.message || '操作冲突，请刷新后重试')
+        break
+        
       case 422:
         // 参数验证失败
         toast.error(error.message || '参数验证失败')
+        break
+        
+      case 423:
+        // 账号锁定
+        toast.error('登录失败次数过多，请稍后重试')
+        break
+        
+      case 429:
+        // 请求频率限制
+        toast.error('操作过于频繁，请稍后重试')
         break
         
       case 500:
@@ -190,10 +268,11 @@ export { API_BASE_URL }
 
 // 导出所有 API 模块
 export { productApi } from './product'
-export { cartApi } from './cart'
 export { orderApi } from './order'
 export { addressApi } from './address'
 export { authApi } from './auth'
+export { uploadApi } from './upload'
+export { cartApi } from './cart'
 
 console.log('🔧 API 配置已加载')
 console.log(`📡 API Base URL: ${API_BASE_URL}`)

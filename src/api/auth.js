@@ -220,6 +220,57 @@ async function mockRefreshToken() {
 }
 
 /**
+ * Mock 更新个人资料
+ */
+async function mockUpdateProfile(profileData) {
+  await mockDelay(500)
+  
+  // 从 token 中获取用户 ID
+  const token = localStorage.getItem('token')
+  if (!token) {
+    throw new Error('未登录')
+  }
+  
+  const userId = parseInt(token.split('-')[2]) || 1
+  const userIndex = registeredUsers.findIndex(u => u.id === userId)
+  
+  if (userIndex === -1) {
+    throw new Error('用户不存在')
+  }
+  
+  // 如果更新邮箱，检查是否已被其他用户使用
+  if (profileData.email) {
+    const existingEmail = registeredUsers.find(
+      u => u.email === profileData.email && u.id !== userId
+    )
+    if (existingEmail) {
+      return {
+        success: false,
+        message: '邮箱已被使用',
+        code: 'EMAIL_EXISTS'
+      }
+    }
+  }
+  
+  // 更新用户信息
+  registeredUsers[userIndex] = {
+    ...registeredUsers[userIndex],
+    ...profileData,
+    updatedAt: new Date().toISOString()
+  }
+  
+  // 保存到 localStorage
+  saveUsersToStorage(registeredUsers)
+  
+  const { password, ...userInfo } = registeredUsers[userIndex]
+  return {
+    success: true,
+    data: userInfo,
+    message: '个人资料更新成功'
+  }
+}
+
+/**
  * 重置用户数据（开发测试用）
  * 在浏览器控制台执行: window.resetMockUsers()
  */
@@ -279,12 +330,9 @@ export const authApi = {
     
     // 真实后端 API：使用 RSA 加密登录
     try {
-      // 1. 获取 Challenge
-      const challengeResponse = await api.get('/auth/challenge?purpose=login')
-      console.log('📦 Challenge 完整响应:', challengeResponse)
-      
-      // 从响应中提取 data 字段（后端返回格式：{success, message, data}）
-      const challenge = challengeResponse.data
+      // 1. 获取 Challenge（响应拦截器已自动解包，直接返回 data 字段）
+      const challenge = await api.get('/auth/challenge?purpose=login')
+      console.log('📦 Challenge 数据:', challenge)
       
       if (!challenge || !challenge.publicKey) {
         console.error('❌ Challenge 数据无效:', challenge)
@@ -304,33 +352,30 @@ export const authApi = {
       
       console.log('✅ 数据已加密，提交登录...')
       
-      // 3. 提交加密后的登录请求
-      const loginResponse = await api.post('/auth/login', {
+      // 3. 提交加密后的登录请求（响应拦截器已自动解包，直接返回 data 字段）
+      const loginData = await api.post('/auth/login', {
         credential: {
           challengeId: challenge.challengeId,
           payload
         }
       })
       
-      console.log('📦 登录完整响应:', loginResponse)
-      
-      // 从响应中提取 data 字段
-      const responseData = loginResponse.data
+      console.log('📦 登录数据:', loginData)
       
       // 4. 转换响应格式，兼容前端
       return {
         success: true,
         data: {
-          token: responseData.token,
+          token: loginData.token,
           user: {
-            id: responseData.user.id,
-            username: responseData.user.username,
-            email: responseData.user.email,
-            nickname: responseData.user.nickname || responseData.user.username,
-            avatar: responseData.user.avatar || '/images/logo.webp',
-            role: responseData.user.role,
-            roles: responseData.user.roles,
-            permissions: responseData.user.permissions
+            id: loginData.user.id,
+            username: loginData.user.username,
+            email: loginData.user.email,
+            nickname: loginData.user.nickname || loginData.user.username,
+            avatar: loginData.user.avatar || '/images/logo.webp',
+            role: loginData.user.role,
+            roles: loginData.user.roles,
+            permissions: loginData.user.permissions
           }
         },
         message: '登录成功'
@@ -357,12 +402,9 @@ export const authApi = {
     
     // 真实后端 API：使用 RSA 加密注册
     try {
-      // 1. 获取 Challenge
-      const challengeResponse = await api.get('/auth/challenge?purpose=register')
-      console.log('📦 Challenge 完整响应:', challengeResponse)
-      
-      // 从响应中提取 data 字段（后端返回格式：{success, message, data}）
-      const challenge = challengeResponse.data
+      // 1. 获取 Challenge（响应拦截器已自动解包，直接返回 data 字段）
+      const challenge = await api.get('/auth/challenge?purpose=register')
+      console.log('📦 Challenge 数据:', challenge)
       
       if (!challenge || !challenge.publicKey) {
         console.error('❌ Challenge 数据无效:', challenge)
@@ -384,23 +426,20 @@ export const authApi = {
       
       console.log('✅ 数据已加密，提交注册...')
       
-      // 3. 提交加密后的注册请求
-      const registerResponse = await api.post('/auth/register', {
+      // 3. 提交加密后的注册请求（响应拦截器已自动解包，直接返回 data 字段）
+      const registerData = await api.post('/auth/register', {
         credential: {
           challengeId: challenge.challengeId,
           payload
         }
       })
       
-      console.log('📦 注册完整响应:', registerResponse)
-      
-      // 从响应中提取 data 字段
-      const responseData = registerResponse.data
+      console.log('📦 注册数据:', registerData)
       
       // 4. 返回成功响应
       return {
         success: true,
-        data: { user: responseData.user },
+        data: { user: registerData.user },
         message: '注册成功，请登录'
       }
     } catch (error) {
@@ -468,6 +507,125 @@ export const authApi = {
       data: {
         token: response.token
       }
+    }
+  },
+
+  /**
+   * 更新个人资料
+   * @param {Object} profileData - 个人资料
+   * @param {string} profileData.nickname - 昵称（可选）
+   * @param {string} profileData.email - 邮箱（可选）
+   * @param {string} profileData.avatar - 头像URL（可选）
+   * @returns {Promise<Object>}
+   */
+  async updateProfile(profileData) {
+    if (USE_MOCK) {
+      return mockUpdateProfile(profileData)
+    }
+    
+    // 真实后端 API
+    const user = await api.put('/auth/profile', profileData)
+    
+    return {
+      success: true,
+      data: user,
+      message: '个人资料更新成功'
+    }
+  },
+
+  /**
+   * 修改密码（使用 RSA 加密）
+   * @param {Object} passwordData - 密码数据
+   * @param {string} passwordData.oldPassword - 旧密码
+   * @param {string} passwordData.newPassword - 新密码
+   * @returns {Promise<Object>}
+   */
+  async changePassword(passwordData) {
+    if (USE_MOCK) {
+      await mockDelay(500)
+      
+      // Mock 模式：简单验证旧密码
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('未登录')
+      }
+      
+      const userId = parseInt(token.split('-')[2]) || 1
+      const userIndex = registeredUsers.findIndex(u => u.id === userId)
+      
+      if (userIndex === -1) {
+        throw new Error('用户不存在')
+      }
+      
+      // 验证旧密码
+      if (registeredUsers[userIndex].password !== passwordData.oldPassword) {
+        return {
+          success: false,
+          message: '旧密码不正确',
+          code: 'INVALID_CREDENTIALS'
+        }
+      }
+      
+      // 更新密码
+      registeredUsers[userIndex].password = passwordData.newPassword
+      registeredUsers[userIndex].updatedAt = new Date().toISOString()
+      
+      // 保存到 localStorage
+      saveUsersToStorage(registeredUsers)
+      
+      return {
+        success: true,
+        message: '密码修改成功，请重新登录'
+      }
+    }
+    
+    // 真实后端 API：使用 RSA 加密修改密码
+    try {
+      // 1. 获取 Challenge（响应拦截器已自动解包，直接返回 data 字段）
+      const challenge = await api.get('/auth/challenge?purpose=change-password')
+      console.log('📦 Challenge 数据:', challenge)
+      
+      if (!challenge || !challenge.publicKey) {
+        console.error('❌ Challenge 数据无效:', challenge)
+        throw new Error('未获取到公钥，请检查网络连接')
+      }
+      
+      console.log('✅ 公钥已获取，准备加密...')
+      
+      // 2. 加密密码数据
+      const payload = await encryptPayload(challenge.publicKey, {
+        purpose: 'change-password',
+        challengeId: challenge.challengeId,
+        nonce: challenge.nonce,
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword
+      })
+      
+      console.log('✅ 数据已加密，提交修改密码请求...')
+      
+      // 3. 提交加密后的修改密码请求（响应拦截器已自动解包，直接返回 data 字段）
+      await api.put('/auth/password', {
+        credential: {
+          challengeId: challenge.challengeId,
+          payload
+        }
+      })
+      
+      console.log('✅ 密码修改成功')
+      
+      // 4. 返回成功响应
+      return {
+        success: true,
+        message: '密码修改成功，请重新登录'
+      }
+    } catch (error) {
+      console.error('❌ 修改密码失败:', error)
+      
+      // 处理错误信息
+      if (error.message === 'INVALID_CREDENTIALS') {
+        throw new Error('旧密码不正确')
+      }
+      throw error
     }
   }
 }

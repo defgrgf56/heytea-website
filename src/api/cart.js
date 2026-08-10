@@ -3,6 +3,10 @@ import { api } from './index'
 // 🎭 Mock 模式开关（从环境变量读取）
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
+// 调试信息
+console.log('🎭 购物车 API Mock 模式:', USE_MOCK)
+console.log('🔧 环境变量 VITE_USE_MOCK:', import.meta.env.VITE_USE_MOCK)
+
 /**
  * 模拟网络延迟
  */
@@ -15,21 +19,21 @@ function mockDelay(ms = 300) {
  */
 export const cartApi = {
   /**
-   * 获取购物车列表
+   * 获取购物车
    * @returns {Promise<Object>}
    */
   async getCart() {
     if (USE_MOCK) {
       await mockDelay()
       
-      // Mock 数据从 localStorage 读取
-      const cartItems = JSON.parse(localStorage.getItem('cart') || '[]')
+      const cart = JSON.parse(localStorage.getItem('heytea_cart') || '[]')
       
       return {
         success: true,
         data: {
-          items: cartItems,
-          totalPrice: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+          items: cart,
+          totalItems: cart.reduce((sum, item) => sum + item.quantity, 0),
+          totalPrice: cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
         },
         message: '获取购物车成功'
       }
@@ -42,79 +46,98 @@ export const cartApi = {
   /**
    * 添加商品到购物车
    * @param {Object} item - 商品信息
+   * @param {string} item.productId - 商品ID
+   * @param {number} item.quantity - 数量
+   * @param {string} item.sizeCode - 杯型编码
+   * @param {string} item.sweetnessCode - 甜度编码
+   * @param {Array<string>} item.toppingCodes - 配料编码数组
    * @returns {Promise<Object>}
    */
-  async addItem(item) {
+  async addToCart(item) {
     if (USE_MOCK) {
       await mockDelay()
       
-      const cartItems = JSON.parse(localStorage.getItem('cart') || '[]')
+      const cart = JSON.parse(localStorage.getItem('heytea_cart') || '[]')
       
-      // 检查是否已存在相同规格的商品
-      const existingIndex = cartItems.findIndex(
-        i => i.id === item.id && 
-        i.selectedSize === item.selectedSize &&
-        JSON.stringify(i.selectedToppings) === JSON.stringify(item.selectedToppings) &&
-        i.selectedSweetness === item.selectedSweetness
-      )
+      // 查找是否已存在相同商品（含规格）
+      const existingIndex = cart.findIndex(cartItem => cartItem.id === item.id)
       
       if (existingIndex > -1) {
         // 已存在，增加数量
-        cartItems[existingIndex].quantity += item.quantity || 1
+        cart[existingIndex].quantity += item.quantity || 1
       } else {
-        // 不存在，添加新项
-        cartItems.push({
+        // 不存在，添加新商品
+        cart.push({
           ...item,
-          cartItemId: Date.now(), // 生成唯一 ID
-          quantity: item.quantity || 1
+          quantity: item.quantity || 1,
+          addTime: new Date().toISOString()
         })
       }
       
-      localStorage.setItem('cart', JSON.stringify(cartItems))
+      localStorage.setItem('heytea_cart', JSON.stringify(cart))
       
       return {
         success: true,
-        data: cartItems,
+        data: {
+          items: cart,
+          totalItems: cart.reduce((sum, item) => sum + item.quantity, 0)
+        },
         message: '添加成功'
       }
     }
     
-    // 真实 API
-    return api.post('/cart/items', {
-      productId: item.id,
+    // 真实 API - 提取真实的商品 ID（去除规格后缀）
+    // 前端 ID 格式：productId-size-toppings，后端只需要 productId
+    let productId = item.productId || item.id
+    if (typeof productId === 'string' && productId.includes('-')) {
+      // 提取第一部分作为真实 ID
+      productId = productId.split('-')[0]
+    }
+    
+    const requestBody = {
+      productId: productId,  // 必须是字符串类型的 ObjectId
       quantity: item.quantity || 1,
-      size: item.selectedSize,
-      toppings: item.selectedToppings,
-      sweetness: item.selectedSweetness
-    })
+      sizeCode: item.sizeCode || item.selectedSize || 'medium',      // ✅ 默认 medium
+      sweetnessCode: item.sweetnessCode || item.selectedSweetness || 'normal',  // ✅ 默认 normal
+      toppingCodes: item.toppingCodes || item.selectedToppings || []
+    }
+    
+    console.log('📤 发送购物车请求:', requestBody)
+    
+    // 按照接口文档格式发送
+    return api.post('/cart/items', requestBody)
   },
 
   /**
    * 更新购物车商品数量
-   * @param {string} cartItemId - 购物车项 ID
+   * @param {string} itemId - 购物车项ID
    * @param {number} quantity - 新数量
    * @returns {Promise<Object>}
    */
-  async updateQuantity(cartItemId, quantity) {
+  async updateCartItem(itemId, quantity) {
     if (USE_MOCK) {
       await mockDelay()
       
-      const cartItems = JSON.parse(localStorage.getItem('cart') || '[]')
-      const index = cartItems.findIndex(i => i.cartItemId === cartItemId)
+      const cart = JSON.parse(localStorage.getItem('heytea_cart') || '[]')
+      const index = cart.findIndex(item => item.id === itemId)
       
       if (index > -1) {
         if (quantity <= 0) {
-          // 数量为 0，删除该项
-          cartItems.splice(index, 1)
+          // 数量为0，删除商品
+          cart.splice(index, 1)
         } else {
-          cartItems[index].quantity = quantity
+          // 更新数量
+          cart[index].quantity = quantity
         }
         
-        localStorage.setItem('cart', JSON.stringify(cartItems))
+        localStorage.setItem('heytea_cart', JSON.stringify(cart))
         
         return {
           success: true,
-          data: cartItems,
+          data: {
+            items: cart,
+            totalItems: cart.reduce((sum, item) => sum + item.quantity, 0)
+          },
           message: '更新成功'
         }
       }
@@ -126,33 +149,38 @@ export const cartApi = {
       }
     }
     
-    // 真实 API
-    return api.put(`/cart/items/${cartItemId}`, { quantity })
+    // 真实 API - 按照接口文档格式
+    return api.put(`/cart/items/${itemId}`, { 
+      quantity: quantity 
+    })
   },
 
   /**
    * 删除购物车商品
-   * @param {string} cartItemId - 购物车项 ID
+   * @param {string} itemId - 商品ID（含规格）
    * @returns {Promise<Object>}
    */
-  async removeItem(cartItemId) {
+  async removeCartItem(itemId) {
     if (USE_MOCK) {
       await mockDelay()
       
-      const cartItems = JSON.parse(localStorage.getItem('cart') || '[]')
-      const filteredItems = cartItems.filter(i => i.cartItemId !== cartItemId)
+      const cart = JSON.parse(localStorage.getItem('heytea_cart') || '[]')
+      const filtered = cart.filter(item => item.id !== itemId)
       
-      localStorage.setItem('cart', JSON.stringify(filteredItems))
+      localStorage.setItem('heytea_cart', JSON.stringify(filtered))
       
       return {
         success: true,
-        data: filteredItems,
+        data: {
+          items: filtered,
+          totalItems: filtered.reduce((sum, item) => sum + item.quantity, 0)
+        },
         message: '删除成功'
       }
     }
     
     // 真实 API
-    return api.delete(`/cart/items/${cartItemId}`)
+    return api.delete(`/cart/items/${itemId}`)
   },
 
   /**
@@ -163,17 +191,58 @@ export const cartApi = {
     if (USE_MOCK) {
       await mockDelay()
       
-      localStorage.setItem('cart', JSON.stringify([]))
+      localStorage.setItem('heytea_cart', JSON.stringify([]))
       
       return {
         success: true,
-        data: [],
+        data: {
+          items: [],
+          totalItems: 0
+        },
         message: '购物车已清空'
       }
     }
     
     // 真实 API
     return api.delete('/cart')
+  },
+
+  /**
+   * 合并购物车（登录后同步）
+   * 注意：后端暂未提供此接口，本方法主要用于本地购物车管理
+   * @param {Array} localItems - 本地购物车商品
+   * @returns {Promise<Object>}
+   */
+  async mergeCart(localItems) {
+    if (USE_MOCK) {
+      await mockDelay()
+      
+      // Mock 模式下，直接使用本地购物车
+      return {
+        success: true,
+        data: {
+          items: localItems,
+          totalItems: localItems.reduce((sum, item) => sum + item.quantity, 0)
+        },
+        message: '购物车同步成功'
+      }
+    }
+    
+    // 真实 API - 后端暂未提供 /cart/merge 接口
+    // 这里通过逐个添加商品到购物车来实现合并
+    console.warn('⚠️ 后端暂无 /cart/merge 接口，使用批量添加方式合并购物车')
+    
+    try {
+      for (const item of localItems) {
+        await this.addToCart(item)
+      }
+      
+      // 返回最新购物车
+      return await this.getCart()
+    } catch (error) {
+      console.error('❌ 购物车合并失败:', error)
+      throw error
+    }
   }
 }
 

@@ -40,6 +40,26 @@ export const useUserStore = defineStore('user', () => {
         localStorage.setItem('token', response.data.token)
         localStorage.setItem('user', JSON.stringify(user.value))
         
+        // 🛒 登录成功后同步购物车
+        try {
+          const { useCartStore } = await import('./cart')
+          const cartStore = useCartStore()
+          await cartStore.syncFromServer()
+          console.log('✅ 购物车同步完成')
+        } catch (err) {
+          console.warn('⚠️ 购物车同步失败:', err.message)
+        }
+        
+        // 📍 登录成功后加载收货地址
+        try {
+          const { useAddressStore } = await import('./address')
+          const addressStore = useAddressStore()
+          await addressStore.fetchAddresses()
+          console.log('✅ 地址列表加载完成')
+        } catch (err) {
+          console.warn('⚠️ 地址列表加载失败:', err.message)
+        }
+        
         return { success: true }
       } else {
         throw new Error(response.message || '登录失败')
@@ -88,6 +108,15 @@ export const useUserStore = defineStore('user', () => {
     } catch (err) {
       console.error('退出登录 API 调用失败:', err)
     } finally {
+      // 🛒 禁用购物车同步
+      try {
+        const { useCartStore } = await import('./cart')
+        const cartStore = useCartStore()
+        cartStore.disableSync()
+      } catch (err) {
+        console.warn('⚠️ 购物车同步禁用失败:', err.message)
+      }
+      
       // 清除本地数据
       user.value = null
       token.value = ''
@@ -128,7 +157,7 @@ export const useUserStore = defineStore('user', () => {
   /**
    * 从本地存储恢复用户信息（页面刷新时）
    */
-  function restoreUserFromStorage() {
+  async function restoreUserFromStorage() {
     const storedUser = localStorage.getItem('user')
     const storedToken = localStorage.getItem('token')
     
@@ -142,6 +171,26 @@ export const useUserStore = defineStore('user', () => {
         const savedAvatar = localStorage.getItem(`avatar_${userId}`)
         if (savedAvatar) {
           user.value.avatar = savedAvatar
+        }
+
+        // 🛒 页面刷新后重新启用购物车同步
+        try {
+          const { useCartStore } = await import('./cart')
+          const cartStore = useCartStore()
+          await cartStore.syncFromServer()
+          console.log('✅ 页面刷新后购物车同步完成')
+        } catch (err) {
+          console.warn('⚠️ 页面刷新后购物车同步失败:', err.message)
+        }
+        
+        // 📍 页面刷新后加载地址列表
+        try {
+          const { useAddressStore } = await import('./address')
+          const addressStore = useAddressStore()
+          await addressStore.fetchAddresses()
+          console.log('✅ 页面刷新后地址列表加载完成')
+        } catch (err) {
+          console.warn('⚠️ 页面刷新后地址列表加载失败:', err.message)
         }
       } catch (err) {
         console.error('解析用户信息失败:', err)

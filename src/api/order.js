@@ -1,70 +1,47 @@
 import { api } from './index'
 
-// 🎭 Mock 模式开关（从环境变量读取）
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
-
 /**
- * 模拟网络延迟
+ * 生成客户端请求ID（用于防重复提交）
  */
-function mockDelay(ms = 500) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-/**
- * 生成订单号
- */
-function generateOrderNo() {
-  const date = new Date()
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const random = Math.floor(Math.random() * 10000000).toString().padStart(7, '0')
-  return `HT${year}${month}${day}${random}`
+function generateClientRequestId() {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).substring(2, 10)
+  return `checkout-${timestamp}-${random}`
 }
 
 /**
  * 订单相关 API
+ * 注意：订单接口始终调用真实后端 API，不使用 Mock 模式
  */
 export const orderApi = {
   /**
-   * 创建订单
+   * 创建订单（从服务端购物车创建）
    * @param {Object} orderData - 订单数据
+   * @param {string} orderData.addressId - 地址ID（必填，ObjectId格式）
+   * @param {string} orderData.payMethod - 支付方式（必填，mock_wechat/mock_alipay）
+   * @param {string} orderData.remark - 备注（可选）
+   * @param {string} orderData.clientRequestId - 客户端请求ID（可选，8-80位，防重复提交）
    * @returns {Promise<Object>}
    */
   async createOrder(orderData) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]')
-      
-      const newOrder = {
-        id: Date.now(),
-        orderNo: generateOrderNo(),
-        status: 'pending', // pending/confirmed/preparing/completed/cancelled
-        items: orderData.items,
-        totalAmount: orderData.totalAmount,
-        deliveryFee: orderData.deliveryFee || 5,
-        address: orderData.address,
-        remark: orderData.remark || '',
-        createTime: new Date().toISOString(),
-        updateTime: new Date().toISOString()
-      }
-      
-      orders.unshift(newOrder) // 添加到开头
-      localStorage.setItem('orders', JSON.stringify(orders))
-      
-      // 清空购物车
-      localStorage.setItem('cart', JSON.stringify([]))
-      
-      return {
-        success: true,
-        data: newOrder,
-        message: '订单创建成功'
-      }
-    }
+    console.log('📤 创建订单请求:', {
+      addressId: orderData.addressId,
+      payMethod: orderData.payMethod,
+      remark: orderData.remark,
+      clientRequestId: orderData.clientRequestId
+    })
     
-    // 真实 API
-    return api.post('/orders', orderData)
+    // 真实 API - 按照接口文档规范
+    // 注意：后端会从服务端购物车读取商品，不接收前端传递的商品列表
+    const response = await api.post('/orders', {
+      addressId: orderData.addressId,  // 必填，ObjectId格式
+      payMethod: orderData.payMethod || 'mock_wechat',  // 必填（教学占位值）
+      remark: orderData.remark || '',  // 可选
+      clientRequestId: orderData.clientRequestId || generateClientRequestId()  // 防重复提交
+    })
+    
+    console.log('✅ 订单创建成功:', response)
+    return response
   },
 
   /**
@@ -76,218 +53,41 @@ export const orderApi = {
    * @returns {Promise<Object>}
    */
   async getOrders(params = {}) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      let orders = JSON.parse(localStorage.getItem('orders') || '[]')
-      
-      // 按状态过滤
-      if (params.status && params.status !== 'all') {
-        orders = orders.filter(o => o.status === params.status)
-      }
-      
-      // 分页
-      const page = params.page || 1
-      const pageSize = params.pageSize || 10
-      const total = orders.length
-      const start = (page - 1) * pageSize
-      const end = start + pageSize
-      const items = orders.slice(start, end)
-      
-      return {
-        success: true,
-        data: {
-          items,
-          total,
-          page,
-          pageSize,
-          totalPages: Math.ceil(total / pageSize)
-        },
-        message: '获取订单列表成功'
-      }
-    }
-    
-    // 真实 API
     const queryString = new URLSearchParams(params).toString()
-    return api.get(`/orders?${queryString}`)
+    return api.get(`/orders${queryString ? '?' + queryString : ''}`)
   },
 
   /**
    * 获取订单详情
-   * @param {number} orderId - 订单 ID
+   * @param {string} orderId - 订单 ID (ObjectId)
    * @returns {Promise<Object>}
    */
   async getOrderDetail(orderId) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]')
-      const order = orders.find(o => o.id === parseInt(orderId))
-      
-      if (order) {
-        return {
-          success: true,
-          data: order,
-          message: '获取订单详情成功'
-        }
-      }
-      
-      return {
-        success: false,
-        data: null,
-        message: '订单不存在'
-      }
-    }
-    
-    // 真实 API
     return api.get(`/orders/${orderId}`)
   },
 
   /**
-   * 取消订单
-   * @param {number} orderId - 订单 ID
+   * 取消订单（顾客端）
+   * 只能取消 pending 或 confirmed 状态的订单
+   * @param {string} orderId - 订单 ID
    * @returns {Promise<Object>}
    */
   async cancelOrder(orderId) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]')
-      const index = orders.findIndex(o => o.id === parseInt(orderId))
-      
-      if (index > -1) {
-        // 只有待支付和已确认状态可以取消
-        if (['pending', 'confirmed'].includes(orders[index].status)) {
-          orders[index].status = 'cancelled'
-          orders[index].updateTime = new Date().toISOString()
-          
-          localStorage.setItem('orders', JSON.stringify(orders))
-          
-          return {
-            success: true,
-            data: orders[index],
-            message: '订单已取消'
-          }
-        }
-        
-        return {
-          success: false,
-          data: null,
-          message: '当前状态不能取消订单'
-        }
-      }
-      
-      return {
-        success: false,
-        data: null,
-        message: '订单不存在'
-      }
-    }
-    
-    // 真实 API
     return api.put(`/orders/${orderId}/cancel`)
   },
 
   /**
-   * 再来一单（重新下单）
-   * @param {number} orderId - 原订单 ID
-   * @returns {Promise<Object>}
+   * 再来一单
+   * 将历史订单中仍可购买的商品重新加入购物车
+   * @param {string} orderId - 原订单 ID
+   * @returns {Promise<Object>} 返回更新后的购物车和跳过的商品列表
    */
   async reorder(orderId) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]')
-      const originalOrder = orders.find(o => o.id === parseInt(orderId))
-      
-      if (!originalOrder) {
-        return {
-          success: false,
-          data: null,
-          message: '原订单不存在'
-        }
-      }
-      
-      // 将原订单商品添加到购物车
-      const cartItems = JSON.parse(localStorage.getItem('cart') || '[]')
-      
-      originalOrder.items.forEach(item => {
-        cartItems.push({
-          ...item,
-          cartItemId: Date.now() + Math.random(), // 生成新的购物车 ID
-          quantity: item.quantity
-        })
-      })
-      
-      localStorage.setItem('cart', JSON.stringify(cartItems))
-      
-      return {
-        success: true,
-        data: cartItems,
-        message: '商品已添加到购物车'
-      }
-    }
-    
-    // 真实 API
     return api.post(`/orders/${orderId}/reorder`)
-  },
-
-  /**
-   * 更新订单状态（管理员功能，仅供测试）
-   * @param {number} orderId - 订单 ID
-   * @param {string} status - 新状态
-   * @returns {Promise<Object>}
-   */
-  async updateOrderStatus(orderId, status) {
-    if (USE_MOCK) {
-      await mockDelay()
-      
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]')
-      const index = orders.findIndex(o => o.id === parseInt(orderId))
-      
-      if (index > -1) {
-        orders[index].status = status
-        orders[index].updateTime = new Date().toISOString()
-        
-        localStorage.setItem('orders', JSON.stringify(orders))
-        
-        return {
-          success: true,
-          data: orders[index],
-          message: '订单状态已更新'
-        }
-      }
-      
-      return {
-        success: false,
-        data: null,
-        message: '订单不存在'
-      }
-    }
-    
-    // 真实 API（需要管理员权限）
-    return api.put(`/orders/${orderId}/status`, { status })
   }
 }
 
-// 开发工具：模拟订单状态变化
-window.mockOrderProgress = function(orderId) {
-  const statuses = ['pending', 'confirmed', 'preparing', 'completed']
-  let currentIndex = 0
-  
-  const interval = setInterval(async () => {
-    if (currentIndex >= statuses.length) {
-      clearInterval(interval)
-      console.log('✅ 订单流程完成')
-      return
-    }
-    
-    const status = statuses[currentIndex]
-    await orderApi.updateOrderStatus(orderId, status)
-    console.log(`📦 订单状态更新为: ${status}`)
-    currentIndex++
-  }, 3000) // 每3秒更新一次状态
-}
+// 导出工具函数
+export { generateClientRequestId }
 
-console.log('📦 订单 API 已加载 (Mock 模式)')
-console.log('💡 开发工具: window.mockOrderProgress(orderId) - 模拟订单状态变化')
+console.log('📦 订单 API 已加载（真实后端模式）')

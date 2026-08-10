@@ -169,8 +169,29 @@ async function addToCart(product) {
     return
   }
   
+  // ⚠️ 从列表页快速添加时，使用默认规格
+  // 构建带默认规格的商品对象
+  const cartItem = {
+    ...product,
+    productId: product.id,
+    // 使用默认规格（与后端 specs 一致）
+    sizeCode: 'medium',        // 默认中杯
+    sweetnessCode: 'normal',   // 默认标准糖
+    toppingCodes: [],          // 默认无配料
+    quantity: 1,
+    // 生成唯一ID（基于商品ID和规格组合）
+    id: `${product.id}-medium-none-normal`
+  }
+  
+  console.log('🛒 从列表页添加到购物车（默认规格）:', {
+    productId: cartItem.productId,
+    sizeCode: cartItem.sizeCode,
+    sweetnessCode: cartItem.sweetnessCode,
+    toppingCodes: cartItem.toppingCodes
+  })
+  
   // 使用 cart store 添加商品
-  cartStore.addItem(product)
+  await cartStore.addItem(cartItem)
   toast.success(t('productDetail.addSuccess'))
 }
 </script>

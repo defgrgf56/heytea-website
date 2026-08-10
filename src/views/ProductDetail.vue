@@ -69,6 +69,19 @@
             <button class="quantity-btn" @click="increaseQuantity">+</button>
           </div>
         </div>
+        
+        <!-- 当前选择的规格摘要 -->
+        <div v-if="selectedToppings.length > 0" class="selected-specs">
+          <div class="spec-summary">
+            <span class="spec-summary-label">已选配料：</span>
+            <span class="spec-summary-value">
+              {{ selectedToppings.map(id => {
+                const topping = toppings.find(t => t.id === id)
+                return topping ? t(`productDetail.toppingsList.${topping.id}`) : id
+              }).join('、') }}
+            </span>
+          </div>
+        </div>
 
         <!-- 总价和加入购物车 -->
         <div class="action-section">
@@ -143,6 +156,56 @@ async function loadProductDetail() {
       }
       loading.value = false
     }
+    
+    // 🔍 调试：打印商品规格数据
+    console.log('📦 商品详情加载完成:', product.value)
+    console.log('📋 商品规格:', {
+      sizes: product.value?.sizes,
+      toppings: product.value?.toppings,
+      sweetness: product.value?.sweetness
+    })
+    
+    // ✅ 从后端返回的商品数据中提取规格选项
+    if (product.value) {
+      // 杯型规格（使用 code 作为 id）
+      if (product.value.sizes && Array.isArray(product.value.sizes)) {
+        sizes.value = product.value.sizes.map(s => ({
+          id: s.code,
+          extra: s.extraPrice || 0
+        }))
+        // 设置默认选择（medium 或第一个）
+        const defaultSize = sizes.value.find(s => s.id === 'medium') || sizes.value[0]
+        selectedSize.value = defaultSize?.id
+      }
+      
+      // 配料规格
+      if (product.value.toppings && Array.isArray(product.value.toppings)) {
+        toppings.value = product.value.toppings.map(t => ({
+          id: t.code,
+          price: t.price || 0
+        }))
+      }
+      
+      // 甜度规格
+      if (product.value.sweetness && Array.isArray(product.value.sweetness)) {
+        sweetness.value = product.value.sweetness.map(s => ({
+          id: s.code
+        }))
+        // 设置默认选择（标准糖）
+        const defaultSweetness = sweetness.value.find(s => s.id === 'normal') || sweetness.value[0]
+        selectedSweetness.value = defaultSweetness?.id
+      }
+      
+      console.log('✅ 规格选项已加载:', {
+        sizes: sizes.value,
+        toppings: toppings.value,
+        sweetness: sweetness.value,
+        selected: {
+          size: selectedSize.value,
+          sweetness: selectedSweetness.value
+        }
+      })
+    }
   } catch (err) {
     console.error('加载商品详情失败:', err)
     toast.error('该商品不存在，请从商品列表选择')
@@ -154,30 +217,15 @@ async function loadProductDetail() {
   }
 }
 
-// 规格选项
-const sizes = [
-  { id: 'small', extra: -2 },
-  { id: 'medium', extra: 0 },
-  { id: 'large', extra: 3 }
-]
-
-const toppings = [
-  { id: 'pearl', price: 3 },
-  { id: 'coconut', price: 3 },
-  { id: 'pudding', price: 4 }
-]
-
-const sweetness = [
-  { id: 'none' },
-  { id: 'less' },
-  { id: 'normal' },
-  { id: 'more' }
-]
+// 规格选项（从后端商品详情动态加载）
+const sizes = ref([])
+const toppings = ref([])
+const sweetness = ref([])
 
 // 选择状态
-const selectedSize = ref('medium')
+const selectedSize = ref(null)
 const selectedToppings = ref([])
-const selectedSweetness = ref('normal')
+const selectedSweetness = ref(null)
 const quantity = ref(1)
 
 // 计算总价
@@ -187,12 +235,12 @@ const totalPrice = computed(() => {
   let price = product.value.price
   
   // 加上杯型差价
-  const size = sizes.find(s => s.id === selectedSize.value)
+  const size = sizes.value.find(s => s.id === selectedSize.value)
   if (size) price += size.extra
   
   // 加上配料价格
   selectedToppings.value.forEach(toppingId => {
-    const topping = toppings.find(t => t.id === toppingId)
+    const topping = toppings.value.find(t => t.id === toppingId)
     if (topping) price += topping.price
   })
   
@@ -234,24 +282,47 @@ async function addToCart() {
     return
   }
   
+  // 验证规格选择
+  if (!selectedSize.value) {
+    toast.error('请选择杯型')
+    return
+  }
+  
+  if (!selectedSweetness.value) {
+    toast.error('请选择甜度')
+    return
+  }
+  
   // 构建带规格的商品对象
   const cartItem = {
     ...product.value,
+    // 保存原始商品ID（用于后端API）
+    productId: product.value.id,
     // 添加用户选择的规格信息
     selectedSize: selectedSize.value,
     selectedToppings: [...selectedToppings.value],
     selectedSweetness: selectedSweetness.value,
+    // 规格编码（用于后端API）
+    sizeCode: selectedSize.value,
+    sweetnessCode: selectedSweetness.value,
+    toppingCodes: [...selectedToppings.value],
     // 使用计算后的总价作为单价（包含规格）
     price: totalPrice.value / quantity.value,
     quantity: quantity.value,
-    // 生成唯一ID（基于商品ID和规格组合）
-    id: `${product.value.id}-${selectedSize.value}-${selectedToppings.value.sort().join('-')}-${selectedSweetness.value}`
+    // 生成唯一ID（基于商品ID和规格组合，用于前端购物车区分）
+    id: `${product.value.id}-${selectedSize.value}-${selectedToppings.value.sort().join('-') || 'none'}-${selectedSweetness.value}`
   }
   
-  // 添加到购物车
-  for (let i = 0; i < quantity.value; i++) {
-    cartStore.addItem(cartItem)
-  }
+  console.log('🛒 准备添加到购物车:', {
+    productId: cartItem.productId,
+    quantity: cartItem.quantity,
+    sizeCode: cartItem.sizeCode,
+    sweetnessCode: cartItem.sweetnessCode,
+    toppingCodes: cartItem.toppingCodes
+  })
+  
+  // ✅ 只调用一次 addItem，让 store 处理数量累加
+  await cartStore.addItem(cartItem)
   
   toast.success(t('productDetail.addSuccess'))
   
@@ -436,6 +507,29 @@ async function addToCart() {
   font-weight: 600;
   min-width: 30px;
   text-align: center;
+}
+
+.selected-specs {
+  background-color: #f8f8f8;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.spec-summary {
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  
+  .spec-summary-label {
+    color: #666;
+    font-weight: 500;
+  }
+  
+  .spec-summary-value {
+    color: #1a1a1a;
+    font-weight: 600;
+  }
 }
 
 .action-section {

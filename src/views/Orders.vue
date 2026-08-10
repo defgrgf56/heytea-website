@@ -44,13 +44,33 @@
               <span class="total-amount">¥{{ order.totalAmount }}</span>
             </div>
             <div class="order-actions">
-              <button 
-                v-if="order.status === 'pending'"
-                class="btn-cancel"
-                @click.stop="cancelOrder(order.id)"
-              >
-                {{ t('orders.cancel') }}
-              </button>
+              <!-- 待支付订单：显示"去支付"和"取消订单" -->
+              <template v-if="order.status === 'pending'">
+                <button 
+                  class="btn-pay"
+                  @click.stop="goToPayment(order.id)"
+                >
+                  {{ t('orders.pay') || '去支付' }}
+                </button>
+                <button 
+                  class="btn-cancel"
+                  @click.stop="cancelOrder(order.id)"
+                >
+                  {{ t('orders.cancel') }}
+                </button>
+              </template>
+              
+              <!-- 已确认订单：可以取消 -->
+              <template v-else-if="order.status === 'confirmed'">
+                <button 
+                  class="btn-cancel"
+                  @click.stop="cancelOrder(order.id)"
+                >
+                  {{ t('orders.cancel') }}
+                </button>
+              </template>
+              
+              <!-- 所有订单都可以"再来一单" -->
               <button 
                 class="btn-reorder"
                 @click.stop="reorder(order.id)"
@@ -96,6 +116,11 @@ function formatTime(isoTime) {
 // 查看订单详情
 function viewOrderDetail(orderId) {
   router.push(`/order/${orderId}`)
+}
+
+// 去支付
+function goToPayment(orderId) {
+  router.push(`/payment/${orderId}`)
 }
 
 // 取消订单
@@ -298,6 +323,17 @@ function reorder(orderId) {
     cursor: pointer;
     transition: all 0.3s ease;
     font-family: 'KaiTi', 'STKaiti', '楷体', 'SimKai', serif;
+  }
+
+  .btn-pay {
+    background-color: #ff6b00;
+    color: white;
+
+    &:hover {
+      background-color: #ff5500;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(255, 107, 0, 0.3);
+    }
   }
 
   .btn-cancel {

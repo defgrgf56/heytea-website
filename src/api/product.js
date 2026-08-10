@@ -249,14 +249,10 @@ export const productApi = {
       Object.entries(backendParams).filter(([_, v]) => v !== undefined)
     ).toString()
     
-    const response = await api.get(`/products?${queryString}`)
+    // ⚠️ 注意：响应拦截器已经自动解包了 data，这里直接得到业务数据
+    const responseData = await api.get(`/products?${queryString}`)
     
-    console.log('📦 商品列表原始响应:', response)
-    
-    // 从响应中提取 data 字段
-    const responseData = response.data
-    
-    console.log('📦 商品列表 data:', responseData)
+    console.log('📦 商品列表原始响应:', responseData)
     
     // 🔍 调试：打印第一个商品的完整数据
     if (responseData.list && responseData.list.length > 0) {
@@ -335,22 +331,10 @@ export const productApi = {
     
     console.log('🔍 准备请求商品详情，ID:', productId, '类型:', typeof productId)
     
-    // 真实 API 调用
-    const response = await api.get(`/products/${productId}`)
+    // ⚠️ 注意：响应拦截器已经自动解包了 data，这里直接得到商品对象
+    const product = await api.get(`/products/${productId}`)
     
-    console.log('📦 商品详情原始响应:', response)
-    
-    // 检查响应是否成功
-    if (!response.success) {
-      return {
-        success: false,
-        data: null,
-        message: response.message || '获取商品详情失败'
-      }
-    }
-    
-    // 从响应中提取 data 字段
-    const product = response.data
+    console.log('📦 商品详情原始响应:', product)
     
     if (!product) {
       return {

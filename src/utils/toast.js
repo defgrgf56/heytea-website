@@ -55,6 +55,13 @@ export const toast = {
   info(message, duration) {
     return showToast(message, 'info', duration)
   },
+  loading(message) {
+    // loading 不自动消失，返回 ID 用于手动关闭
+    return showToast(message, 'info', 0)
+  },
+  dismiss(id) {
+    removeToast(id)
+  },
   // 确认对话框（替代 confirm）
   confirm(message) {
     return new Promise((resolve) => {

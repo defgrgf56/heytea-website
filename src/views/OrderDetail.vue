@@ -1,125 +1,162 @@
 <template>
   <div class="order-detail-page">
-    <div class="order-detail-container">
-      <!-- 返回按钮 -->
-      <button class="back-btn" @click="goBack">
-        <span class="back-icon">←</span>
-        <span>{{ t('orderDetail.back') }}</span>
-      </button>
-      
-      <!-- 加载中 -->
-      <div v-if="loading" class="loading">
-        <span class="loading-icon">⏳</span>
-        <p>{{ t('orderDetail.loading') }}</p>
-      </div>
-      
-      <!-- 订单不存在 -->
-      <div v-else-if="!order" class="not-found">
-        <span class="not-found-icon">📦</span>
-        <p>{{ t('orderDetail.notFound') }}</p>
-        <button class="btn-primary" @click="goToOrders">{{ t('orderDetail.viewAll') }}</button>
-      </div>
-      
-      <!-- 订单详情 -->
-      <div v-else class="order-detail">
-        <!-- 订单状态卡片 -->
-        <div class="status-card">
-          <div class="status-icon" :class="`status-icon--${order.status}`">
-            {{ getStatusIcon(order.status) }}
-          </div>
-          <div class="status-info">
-            <h2 class="status-title">{{ t(`orders.status.${order.status}`) }}</h2>
-            <p class="status-desc">{{ getStatusDesc(order.status) }}</p>
-          </div>
-        </div>
-        
-        <!-- 订单信息 -->
-        <div class="info-card">
-          <h3 class="card-title">{{ t('orderDetail.orderInfo') }}</h3>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">{{ t('orderDetail.orderNo') }}</span>
-              <span class="info-value">{{ order.orderNo }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">{{ t('orderDetail.createTime') }}</span>
-              <span class="info-value">{{ formatDateTime(order.createTime) }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">{{ t('orderDetail.status') }}</span>
-              <span class="info-value status-badge" :class="`status-badge--${order.status}`">
-                {{ t(`orders.status.${order.status}`) }}
-              </span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">{{ t('orderDetail.updateTime') }}</span>
-              <span class="info-value">{{ formatDateTime(order.updateTime) }}</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 商品列表 -->
-        <div class="items-card">
-          <h3 class="card-title">{{ t('orderDetail.items') }}</h3>
-          <div class="items-list">
-            <div v-for="item in order.items" :key="item.id" class="item-row">
-              <img :src="item.image" :alt="item.name" class="item-image" />
-              <div class="item-info">
-                <h4 class="item-name">{{ item.name }}</h4>
-                <p class="item-specs">{{ item.size }} / {{ item.ice }} / {{ item.sugar }}</p>
-                <div v-if="item.toppings && item.toppings.length > 0" class="item-toppings">
-                  <span>{{ t('orderDetail.toppings') }}: </span>
-                  <span>{{ item.toppings.join(', ') }}</span>
-                </div>
-              </div>
-              <div class="item-quantity">x{{ item.quantity }}</div>
-              <div class="item-price">¥{{ (item.price * item.quantity).toFixed(2) }}</div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 价格汇总 -->
-        <div class="summary-card">
-          <h3 class="card-title">{{ t('orderDetail.summary') }}</h3>
-          <div class="summary-rows">
-            <div class="summary-row">
-              <span>{{ t('orderDetail.subtotal') }}</span>
-              <span>¥{{ order.totalAmount.toFixed(2) }}</span>
-            </div>
-            <div class="summary-row">
-              <span>{{ t('orderDetail.deliveryFee') }}</span>
-              <span>¥0.00</span>
-            </div>
-            <div class="summary-row total">
-              <span>{{ t('orderDetail.total') }}</span>
-              <span class="total-price">¥{{ order.totalAmount.toFixed(2) }}</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 操作按钮 -->
-        <div class="actions-card">
-          <button 
-            v-if="order.status === 'pending' || order.status === 'confirmed'" 
-            class="btn-cancel"
-            @click="handleCancel"
+    <div v-if="loading" class="loading-state">
+      <p>{{ t('orderDetail.loading') || '加载中...' }}</p>
+    </div>
+
+    <div v-else-if="error" class="error-state">
+      <p>{{ error }}</p>
+      <button class="btn-back" @click="goBack">{{ t('orderDetail.back') || '返回' }}</button>
+    </div>
+
+    <div v-else-if="order" class="order-container">
+      <!-- 订单状态跟踪 -->
+      <div class="status-tracker">
+        <h2 class="section-title">{{ t('orderDetail.orderStatus') || '订单状态' }}</h2>
+        <div class="status-timeline">
+          <div
+            v-for="(step, index) in orderStatusSteps"
+            :key="step.status"
+            :class="['status-step', {
+              active: index <= currentStepIndex,
+              current: index === currentStepIndex
+            }]"
           >
-            {{ t('orders.cancel') }}
-          </button>
-          <button class="btn-reorder" @click="handleReorder">
-            {{ t('orders.reorder') }}
-          </button>
-          <button class="btn-contact">
-            {{ t('orderDetail.contact') }}
-          </button>
+            <div class="step-icon">
+              <span v-if="index < currentStepIndex">✓</span>
+              <span v-else-if="index === currentStepIndex">{{ index + 1 }}</span>
+              <span v-else>{{ index + 1 }}</span>
+            </div>
+            <div class="step-info">
+              <div class="step-name">{{ t(`orderDetail.status.${step.status}`) || step.label }}</div>
+              <div v-if="step.time" class="step-time">{{ formatTime(step.time) }}</div>
+            </div>
+            <div v-if="index < orderStatusSteps.length - 1" class="step-line"></div>
+          </div>
         </div>
+      </div>
+
+      <!-- 订单信息 -->
+      <div class="order-info-section">
+        <div class="info-row">
+          <span class="label">{{ t('orderDetail.orderNo') || '订单号' }}</span>
+          <span class="value">{{ order.orderNo }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">{{ t('orderDetail.createTime') || '下单时间' }}</span>
+          <span class="value">{{ formatDateTime(order.createTime) }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">{{ t('orderDetail.orderStatus') || '订单状态' }}</span>
+          <span :class="['value', 'status', `status-${order.status}`]">
+            {{ getStatusText(order.status) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- 商品列表 -->
+      <div class="items-section">
+        <h2 class="section-title">{{ t('orderDetail.items') || '订单商品' }}</h2>
+        <div class="items-list">
+          <div v-for="item in order.items" :key="item.id" class="item-card">
+            <img :src="item.image || item.imageUrl" :alt="item.name" class="item-image" />
+            <div class="item-info">
+              <h3 class="item-name">{{ item.name }}</h3>
+              <p v-if="item.selectedSize" class="item-spec">
+                {{ t('productDetail.size') }}: {{ t(`productDetail.sizes.${item.selectedSize}`) }}
+              </p>
+              <p v-if="item.selectedToppings && item.selectedToppings.length" class="item-spec">
+                {{ t('productDetail.toppings') }}: 
+                {{ item.selectedToppings.map(id => t(`productDetail.toppingsList.${id}`)).join('、') }}
+              </p>
+              <p v-if="item.selectedSweetness" class="item-spec">
+                {{ t('productDetail.sweetness') }}: {{ t(`productDetail.sweetnessList.${item.selectedSweetness}`) }}
+              </p>
+              <div class="item-price-info">
+                <span class="price">¥{{ item.price }}</span>
+                <span class="quantity">× {{ item.quantity }}</span>
+              </div>
+            </div>
+            <div class="item-total">
+              ¥{{ (item.price * item.quantity).toFixed(2) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 收货地址 -->
+      <div class="address-section">
+        <h2 class="section-title">{{ t('orderDetail.address') || '收货地址' }}</h2>
+        <div class="address-card">
+          <div class="address-header">
+            <span class="name">{{ order.address.name }}</span>
+            <span class="phone">{{ order.address.phone }}</span>
+          </div>
+          <p class="address-detail">
+            {{ order.address.province }} {{ order.address.city }} 
+            {{ order.address.district }} {{ order.address.detail }}
+          </p>
+        </div>
+      </div>
+
+      <!-- 费用明细 -->
+      <div class="cost-section">
+        <h2 class="section-title">{{ t('orderDetail.cost') || '费用明细' }}</h2>
+        <div class="cost-list">
+          <div class="cost-row">
+            <span>{{ t('orderDetail.itemsTotal') || '商品小计' }}</span>
+            <span>¥{{ itemsTotal }}</span>
+          </div>
+          <div class="cost-row">
+            <span>{{ t('orderDetail.deliveryFee') || '配送费' }}</span>
+            <span>¥{{ order.deliveryFee || 5 }}</span>
+          </div>
+          <div class="cost-row total">
+            <span>{{ t('orderDetail.totalAmount') || '订单总计' }}</span>
+            <span class="total-amount">¥{{ order.totalAmount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="actions">
+        <button class="btn-secondary" @click="goBack">
+          {{ t('orderDetail.back') || '返回' }}
+        </button>
+        
+        <!-- 待支付订单：显示"去支付"按钮 -->
+        <button 
+          v-if="order?.status === 'pending'" 
+          class="btn-pay" 
+          @click="goToPayment"
+        >
+          {{ t('orderDetail.pay') || '去支付' }}
+        </button>
+        
+        <button 
+          v-if="canCancel" 
+          class="btn-cancel" 
+          @click="handleCancelOrder"
+          :disabled="isCancelling"
+        >
+          {{ isCancelling ? t('orderDetail.cancelling') : t('orderDetail.cancel') || '取消订单' }}
+        </button>
+        
+        <button 
+          v-if="canReorder" 
+          class="btn-primary" 
+          @click="handleReorder"
+          :disabled="isReordering"
+        >
+          {{ isReordering ? t('orderDetail.reordering') : t('orderDetail.reorder') || '再来一单' }}
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useOrderStore } from '@/stores/order'
@@ -132,83 +169,181 @@ const { t } = useI18n()
 const orderStore = useOrderStore()
 const cartStore = useCartStore()
 
-const loading = ref(true)
+const orderId = route.params.id
 const order = ref(null)
+const loading = ref(true)
+const error = ref(null)
+const isCancelling = ref(false)
+const isReordering = ref(false)
 
-const orderId = computed(() => parseInt(route.params.id))
+// 订单状态步骤定义
+const statusStepMap = {
+  pending: { index: 0, label: '待支付' },
+  confirmed: { index: 1, label: '已确认' },
+  preparing: { index: 2, label: '制作中' },
+  completed: { index: 3, label: '已完成' },
+  cancelled: { index: -1, label: '已取消' }
+}
 
-onMounted(() => {
-  loadOrder()
+// 当前订单状态对应的步骤索引
+const currentStepIndex = computed(() => {
+  if (!order.value) return 0
+  const statusInfo = statusStepMap[order.value.status]
+  return statusInfo ? statusInfo.index : 0
 })
 
-function loadOrder() {
+// 订单状态步骤列表
+const orderStatusSteps = computed(() => {
+  if (!order.value) return []
+  
+  // 如果订单已取消，只显示取消状态
+  if (order.value.status === 'cancelled') {
+    return [
+      { status: 'cancelled', label: '已取消', time: order.value.updateTime }
+    ]
+  }
+  
+  // 正常流程
+  return [
+    { status: 'pending', label: '待支付', time: order.value.createTime },
+    { status: 'confirmed', label: '已确认', time: order.value.confirmedTime },
+    { status: 'preparing', label: '制作中', time: order.value.preparingTime },
+    { status: 'completed', label: '已完成', time: order.value.completedTime }
+  ]
+})
+
+// 计算商品小计
+const itemsTotal = computed(() => {
+  if (!order.value?.items) return '0.00'
+  const total = order.value.items.reduce((sum, item) => {
+    return sum + (item.price * item.quantity)
+  }, 0)
+  return total.toFixed(2)
+})
+
+// 是否可以取消订单（待支付和已确认状态）
+const canCancel = computed(() => {
+  return order.value && ['pending', 'confirmed'].includes(order.value.status)
+})
+
+// 是否可以再来一单（除了待支付状态）
+const canReorder = computed(() => {
+  return order.value && order.value.status !== 'pending'
+})
+
+// 加载订单详情
+onMounted(async () => {
+  await loadOrderDetail()
+})
+
+async function loadOrderDetail() {
   loading.value = true
-  setTimeout(() => {
-    order.value = orderStore.getOrderById(orderId.value)
-    loading.value = false
-  }, 300)
-}
-
-function goBack() {
-  router.go(-1)
-}
-
-function goToOrders() {
-  router.push('/orders')
-}
-
-function formatDateTime(dateString) {
-  const date = new Date(dateString)
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  return `${year}-${month}-${day} ${hours}:${minutes}`
-}
-
-function getStatusIcon(status) {
-  const icons = {
-    pending: '⏳',
-    confirmed: '✓',
-    preparing: '🔥',
-    completed: '✅',
-    cancelled: '✕'
-  }
-  return icons[status] || '📦'
-}
-
-function getStatusDesc(status) {
-  const descs = {
-    pending: t('orderDetail.statusDesc.pending'),
-    confirmed: t('orderDetail.statusDesc.confirmed'),
-    preparing: t('orderDetail.statusDesc.preparing'),
-    completed: t('orderDetail.statusDesc.completed'),
-    cancelled: t('orderDetail.statusDesc.cancelled')
-  }
-  return descs[status] || ''
-}
-
-async function handleCancel() {
-  const confirmed = await toast.confirm(t('orders.confirmCancel'))
-  if (confirmed) {
-    const success = orderStore.cancelOrder(orderId.value)
-    if (success) {
-      toast.success(t('orders.cancelSuccess'))
-      loadOrder()
+  error.value = null
+  
+  try {
+    const response = await orderStore.fetchOrderDetail(orderId)
+    
+    if (response) {
+      order.value = response
     } else {
-      toast.error(t('orderDetail.cancelFailed'))
+      error.value = t('orderDetail.notFound') || '订单不存在'
     }
+  } catch (err) {
+    console.error('加载订单详情失败:', err)
+    error.value = err.message || t('orderDetail.loadError') || '加载失败'
+  } finally {
+    loading.value = false
   }
 }
 
-function handleReorder() {
-  // 将订单商品加入购物车
-  order.value.items.forEach(item => {
-    cartStore.addItem(item)
-  })
-  toast.success(t('orders.reorderSuccess'))
-  router.push('/order')
+// 取消订单
+async function handleCancelOrder() {
+  const confirmed = await toast.confirm(
+    t('orderDetail.cancelConfirm') || '确定要取消这个订单吗？'
+  )
+  
+  if (!confirmed) return
+  
+  isCancelling.value = true
+  
+  try {
+    await orderStore.cancelOrder(orderId)
+    toast.success(t('orderDetail.cancelSuccess') || '订单已取消')
+    
+    // 重新加载订单详情
+    await loadOrderDetail()
+  } catch (err) {
+    console.error('取消订单失败:', err)
+    toast.error(err.message || t('orderDetail.cancelError') || '取消失败')
+  } finally {
+    isCancelling.value = false
+  }
+}
+
+// 再来一单
+async function handleReorder() {
+  isReordering.value = true
+  
+  try {
+    // 将订单商品添加到购物车
+    for (const item of order.value.items) {
+      await cartStore.addItem({
+        ...item,
+        quantity: item.quantity
+      })
+    }
+    
+    toast.success(t('orderDetail.reorderSuccess') || '商品已添加到购物车')
+    
+    // 跳转到购物车或结算页
+    router.push('/checkout')
+  } catch (err) {
+    console.error('再来一单失败:', err)
+    toast.error(err.message || t('orderDetail.reorderError') || '操作失败')
+  } finally {
+    isReordering.value = false
+  }
+}
+
+// 返回
+function goBack() {
+  router.back()
+}
+
+// 去支付
+function goToPayment() {
+  router.push(`/payment/${orderId}`)
+}
+
+// 获取状态文本
+function getStatusText(status) {
+  const statusMap = {
+    pending: '待支付',
+    confirmed: '已确认',
+    preparing: '制作中',
+    completed: '已完成',
+    cancelled: '已取消'
+  }
+  return statusMap[status] || status
+}
+
+// 格式化时间
+function formatTime(time) {
+  if (!time) return ''
+  const date = new Date(time)
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
+
+// 格式化日期时间
+function formatDateTime(time) {
+  if (!time) return ''
+  const date = new Date(time)
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 </script>
 
@@ -216,68 +351,420 @@ function handleReorder() {
 .order-detail-page {
   min-height: 100vh;
   background-color: #f8f8f8;
-  padding-top: 70px;
+  padding: 70px 0 40px;
 }
 
-.order-detail-container {
-  max-width: 800px;
+.order-container {
+  max-width: 900px;
   margin: 0 auto;
-  padding: 30px 20px;
+  padding: 0 20px;
 }
 
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  color: #666;
-  font-size: 15px;
-  cursor: pointer;
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: #1a1a1a;
+}
+
+/* 订单状态跟踪 */
+.status-tracker {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
   margin-bottom: 20px;
-  padding: 8px 0;
-  transition: color 0.3s;
-  
-  &:hover {
-    color: #1a1a1a;
-  }
-  
-  .back-icon {
-    font-size: 20px;
-  }
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.loading,
-.not-found {
+.status-timeline {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-top: 24px;
+}
+
+.status-step {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  
+  &.active {
+    .step-icon {
+      background-color: #1a1a1a;
+      color: white;
+      border-color: #1a1a1a;
+    }
+    
+    .step-name {
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+    
+    .step-line {
+      background-color: #1a1a1a;
+    }
+  }
+  
+  &.current {
+    .step-icon {
+      background-color: #ff6b00;
+      border-color: #ff6b00;
+      animation: pulse 2s infinite;
+    }
+    
+    .step-name {
+      color: #ff6b00;
+    }
+  }
+}
+
+.step-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  border: 2px solid #ddd;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #999;
+  transition: all 0.3s;
+  z-index: 2;
+}
+
+.step-info {
+  margin-top: 12px;
   text-align: center;
+}
+
+.step-name {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+  transition: all 0.3s;
+}
+
+.step-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.step-line {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  right: -50%;
+  height: 2px;
+  background-color: #ddd;
+  transition: background-color 0.3s;
+  z-index: 1;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* 订单信息 */
+.order-info-section {
   background-color: white;
   border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
   
-  .loading-icon,
-  .not-found-icon {
-    font-size: 80px;
-    margin-bottom: 16px;
-    opacity: 0.5;
+  &:last-child {
+    border-bottom: none;
   }
+  
+  .label {
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .value {
+    font-size: 14px;
+    color: #1a1a1a;
+    font-weight: 500;
+    
+    &.status {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      
+      &.status-pending {
+        background-color: #fff3e0;
+        color: #ff6b00;
+      }
+      
+      &.status-confirmed {
+        background-color: #e3f2fd;
+        color: #2196f3;
+      }
+      
+      &.status-preparing {
+        background-color: #f3e5f5;
+        color: #9c27b0;
+      }
+      
+      &.status-completed {
+        background-color: #e8f5e9;
+        color: #4caf50;
+      }
+      
+      &.status-cancelled {
+        background-color: #ffebee;
+        color: #f44336;
+      }
+    }
+  }
+}
+
+/* 商品列表 */
+.items-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.item-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+}
+
+.item-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #1a1a1a;
+}
+
+.item-spec {
+  font-size: 13px;
+  color: #666;
+  margin: 4px 0;
+}
+
+.item-price-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  
+  .price {
+    font-size: 15px;
+    color: #ff6b00;
+    font-weight: 600;
+  }
+  
+  .quantity {
+    font-size: 14px;
+    color: #999;
+  }
+}
+
+.item-total {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  align-self: center;
+}
+
+/* 收货地址 */
+.address-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.address-card {
+  background-color: #f8f8f8;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.address-header {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+  
+  .name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  
+  .phone {
+    font-size: 15px;
+    color: #666;
+  }
+}
+
+.address-detail {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 费用明细 */
+.cost-section {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.cost-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cost-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  color: #666;
+  
+  &.total {
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 2px solid #f0f0f0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+    
+    .total-amount {
+      color: #ff6b00;
+      font-size: 24px;
+    }
+  }
+}
+
+/* 操作按钮 */
+.actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+  
+  button {
+    flex: 1;
+    padding: 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+  
+  .btn-secondary {
+    background-color: white;
+    color: #666;
+    border: 1px solid #ddd;
+    
+    &:hover:not(:disabled) {
+      border-color: #999;
+      background-color: #f8f8f8;
+    }
+  }
+  
+  .btn-pay {
+    background-color: #ff6b00;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background-color: #ff5500;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+    }
+  }
+  
+  .btn-cancel {
+    background-color: #ffebee;
+    color: #f44336;
+    
+    &:hover:not(:disabled) {
+      background-color: #ffcdd2;
+    }
+  }
+  
+  .btn-primary {
+    background-color: #1a1a1a;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background-color: #000;
+    }
+  }
+}
+
+/* 加载和错误状态 */
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 80px 20px;
   
   p {
     font-size: 16px;
     color: #999;
-    margin: 0 0 24px 0;
+    margin-bottom: 20px;
   }
   
-  .btn-primary {
-    padding: 12px 32px;
+  .btn-back {
+    padding: 10px 24px;
     background-color: #1a1a1a;
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 15px;
+    font-size: 14px;
     cursor: pointer;
     transition: background-color 0.3s;
     
@@ -287,283 +774,27 @@ function handleReorder() {
   }
 }
 
-.order-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.status-card {
-  background-color: white;
-  border-radius: 12px;
-  padding: 30px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+@media (max-width: 768px) {
+  .status-timeline {
+    flex-wrap: wrap;
+    gap: 24px;
+  }
   
-  .status-icon {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
-    flex-shrink: 0;
+  .status-step {
+    flex: 1 1 40%;
     
-    &--pending {
-      background-color: #fff3cd;
-    }
-    
-    &--confirmed {
-      background-color: #d1e7dd;
-    }
-    
-    &--preparing {
-      background-color: #cfe2ff;
-    }
-    
-    &--completed {
-      background-color: #d1e7dd;
-    }
-    
-    &--cancelled {
-      background-color: #f8d7da;
+    .step-line {
+      display: none;
     }
   }
   
-  .status-info {
-    flex: 1;
+  .item-card {
+    flex-direction: column;
   }
-  
-  .status-title {
-    font-size: 24px;
-    font-weight: 600;
-    margin: 0 0 8px 0;
-    color: #1a1a1a;
-  }
-  
-  .status-desc {
-    font-size: 14px;
-    color: #666;
-    margin: 0;
-  }
-}
-
-.info-card,
-.items-card,
-.summary-card,
-.actions-card {
-  background-color: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.card-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 20px 0;
-  color: #1a1a1a;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  
-  .info-label {
-    font-size: 13px;
-    color: #999;
-  }
-  
-  .info-value {
-    font-size: 15px;
-    color: #1a1a1a;
-    font-weight: 500;
-  }
-  
-  .status-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 600;
-    width: fit-content;
-    
-    &--pending {
-      background-color: #fff3cd;
-      color: #856404;
-    }
-    
-    &--confirmed {
-      background-color: #d1e7dd;
-      color: #0f5132;
-    }
-    
-    &--preparing {
-      background-color: #cfe2ff;
-      color: #084298;
-    }
-    
-    &--completed {
-      background-color: #d1e7dd;
-      color: #0f5132;
-    }
-    
-    &--cancelled {
-      background-color: #f8d7da;
-      color: #842029;
-    }
-  }
-}
-
-.items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.item-row {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  background-color: #f8f8f8;
-  border-radius: 8px;
-  align-items: center;
   
   .item-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
-    object-fit: cover;
-    flex-shrink: 0;
-  }
-  
-  .item-info {
-    flex: 1;
-    min-width: 0;
-  }
-  
-  .item-name {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0 0 6px 0;
-    color: #1a1a1a;
-  }
-  
-  .item-specs {
-    font-size: 13px;
-    color: #999;
-    margin: 0 0 4px 0;
-  }
-  
-  .item-toppings {
-    font-size: 12px;
-    color: #666;
-  }
-  
-  .item-quantity {
-    font-size: 15px;
-    color: #666;
-    margin-right: 16px;
-    flex-shrink: 0;
-  }
-  
-  .item-price {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1a1a1a;
-    flex-shrink: 0;
-  }
-}
-
-.summary-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 15px;
-  color: #666;
-  
-  &.total {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1a1a1a;
-    padding-top: 12px;
-    margin-top: 12px;
-    border-top: 1px solid #f0f0f0;
-  }
-  
-  .total-price {
-    color: #1a1a1a;
-  }
-}
-
-.actions-card {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  
-  button {
-    flex: 1;
-    min-width: 120px;
-    padding: 14px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    
-    @media (max-width: 768px) {
-      flex-basis: 100%;
-    }
-  }
-  
-  .btn-cancel {
-    background-color: white;
-    color: #f44336;
-    border: 1px solid #f44336;
-    
-    &:hover {
-      background-color: #fff5f5;
-    }
-  }
-  
-  .btn-reorder {
-    background-color: #1a1a1a;
-    color: white;
-    
-    &:hover {
-      background-color: #000;
-    }
-  }
-  
-  .btn-contact {
-    background-color: white;
-    color: #666;
-    border: 1px solid #ddd;
-    
-    &:hover {
-      background-color: #f8f8f8;
-      border-color: #999;
-    }
+    width: 100%;
+    height: 200px;
   }
 }
 </style>

@@ -296,7 +296,18 @@ const avatarInput = ref(null) // 头像上传 input 引用
 // 安全地获取用户信息的计算属性
 const userName = computed(() => userStore.user?.nickname || userStore.user?.username || '')
 const userEmail = computed(() => userStore.user?.email || '')
-const userAvatar = computed(() => userStore.user?.avatar || '/images/default-avatar.png')
+const userAvatar = computed(() => {
+  // 优先从 localStorage 读取头像
+  if (userStore.user) {
+    const userId = userStore.user.id || userStore.user.username
+    const savedAvatar = localStorage.getItem(`avatar_${userId}`)
+    if (savedAvatar) {
+      return savedAvatar
+    }
+  }
+  // 如果没有保存的头像，使用用户对象中的头像或默认头像
+  return userStore.user?.avatar || '/images/default-avatar.png'
+})
 
 const currentLang = computed(() => locale.value === 'zh-CN' ? '简体中文' : 'English')
 
@@ -344,31 +355,91 @@ watch(() => userStore.user, (user) => {
 }, { immediate: true, deep: true })
 
 // 保存资料
-function saveProfile() {
-  // 更新用户信息到 store
-  if (userStore.user) {
-    userStore.user.nickname = editForm.nickname
-    userStore.user.email = editForm.email
-    
-    // 同步更新 localStorage
-    localStorage.setItem('user', JSON.stringify(userStore.user))
-  }
+async function saveProfile() {
+  const loadingId = toast.loading('正在保存...')
   
-  toast.success(t('profile.saveSuccess'))
-  showEditProfile.value = false
+  try {
+    // 调用 updateProfile 接口
+    const { authApi } = await import('@/api')
+    const updateResult = await authApi.updateProfile({
+      nickname: editForm.nickname,
+      email: editForm.email
+    })
+    
+    console.log('✅ 用户资料更新成功:', updateResult)
+    
+    // 更新本地 store 和 localStorage
+    if (userStore.user) {
+      userStore.user.nickname = editForm.nickname
+      userStore.user.email = editForm.email
+      localStorage.setItem('user', JSON.stringify(userStore.user))
+    }
+    
+    toast.dismiss(loadingId)
+    toast.success(t('profile.saveSuccess'))
+    showEditProfile.value = false
+  } catch (error) {
+    console.error('❌ 保存资料失败:', error)
+    toast.dismiss(loadingId)
+    toast.error(error.message || '保存失败，请重试')
+  }
 }
 
 // 修改密码
-function changePassword() {
+async function changePassword() {
+  // 验证密码
+  if (!passwordForm.oldPassword) {
+    toast.error('请输入旧密码')
+    return
+  }
+  
+  if (!passwordForm.newPassword) {
+    toast.error('请输入新密码')
+    return
+  }
+  
+  if (passwordForm.newPassword.length < 6) {
+    toast.error('新密码长度不能少于 6 位')
+    return
+  }
+  
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
     toast.error(t('profile.passwordNotMatch'))
     return
   }
-  toast.success(t('profile.changePasswordSuccess'))
-  showChangePassword.value = false
-  passwordForm.oldPassword = ''
-  passwordForm.newPassword = ''
-  passwordForm.confirmPassword = ''
+  
+  const loadingId = toast.loading('正在修改密码...')
+  
+  try {
+    // 调用修改密码接口（使用 RSA 加密）
+    const { authApi } = await import('@/api')
+    await authApi.changePassword({
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
+    })
+    
+    console.log('✅ 密码修改成功')
+    
+    toast.dismiss(loadingId)
+    toast.success(t('profile.changePasswordSuccess'))
+    
+    // 清空表单
+    passwordForm.oldPassword = ''
+    passwordForm.newPassword = ''
+    passwordForm.confirmPassword = ''
+    showChangePassword.value = false
+    
+    // 密码修改成功后，旧 Token 失效，需要重新登录
+    setTimeout(async () => {
+      await userStore.logout()
+      router.push('/login')
+      toast.info('请使用新密码重新登录')
+    }, 1500)
+  } catch (error) {
+    console.error('❌ 修改密码失败:', error)
+    toast.dismiss(loadingId)
+    toast.error(error.message || '修改密码失败，请重试')
+  }
 }
 
 // 清除缓存
@@ -504,7 +575,7 @@ function triggerAvatarUpload() {
   avatarInput.value?.click()
 }
 
-function handleAvatarChange(event) {
+async function handleAvatarChange(event) {
   const file = event.target.files[0]
   if (!file) return
   
@@ -520,32 +591,138 @@ function handleAvatarChange(event) {
     return
   }
   
-  // 读取文件并转换为 Base64
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const base64Image = e.target.result
-    
-    // 更新用户头像
-    if (userStore.user) {
-      userStore.user.avatar = base64Image
+  const loadingId = toast.loading('正在上传头像...')
+  
+  try {
+    // 方案1：尝试上传到服务器（普通用户接口）
+    try {
+      const { uploadApi } = await import('@/api')
+      const uploadResult = await uploadApi.uploadUserImage(file)
       
-      // 使用用户 ID 作为 key 单独保存头像
-      const userId = userStore.user.id || userStore.user.username
-      localStorage.setItem(`avatar_${userId}`, base64Image)
+      console.log('✅ 图片上传成功，URL:', uploadResult.url)
       
-      // 同步更新 localStorage 中的用户信息
-      localStorage.setItem('user', JSON.stringify(userStore.user))
+      // 更新用户头像到服务器
+      const { authApi } = await import('@/api')
+      await authApi.updateProfile({
+        avatar: uploadResult.url
+      })
       
+      console.log('✅ 用户资料更新成功')
+      
+      // 更新本地 store 和 localStorage
+      if (userStore.user) {
+        userStore.user.avatar = uploadResult.url
+        localStorage.setItem('user', JSON.stringify(userStore.user))
+        
+        // 清除本地 Base64 头像（如果有）
+        const userId = userStore.user.id || userStore.user.username
+        localStorage.removeItem(`avatar_${userId}`)
+      }
+      
+      toast.dismiss(loadingId)
       toast.success('头像更新成功')
+    } catch (uploadError) {
+      console.warn('⚠️ 服务器上传失败，使用本地存储:', uploadError.message)
+      
+      // 方案2：服务器上传失败，使用 Base64 本地存储作为后备
+      const compressedBase64 = await compressImage(file, 200, 200, 0.7)
+      
+      if (userStore.user) {
+        userStore.user.avatar = compressedBase64
+        
+        const userId = userStore.user.id || userStore.user.username
+        
+        try {
+          localStorage.setItem(`avatar_${userId}`, compressedBase64)
+          
+          const userCopy = { ...userStore.user }
+          delete userCopy.avatar
+          localStorage.setItem('user', JSON.stringify(userCopy))
+          
+          toast.dismiss(loadingId)
+          toast.success('头像已保存到本地（仅当前设备可见）')
+        } catch (storageError) {
+          toast.dismiss(loadingId)
+          toast.error('头像太大，请选择更小的图片')
+        }
+      }
     }
+  } catch (error) {
+    console.error('❌ 头像处理失败:', error)
+    toast.dismiss(loadingId)
+    toast.error(error.message || '头像处理失败，请重试')
   }
-  reader.onerror = () => {
-    toast.error('图片读取失败，请重试')
-  }
-  reader.readAsDataURL(file)
   
   // 清空 input，允许重复选择同一文件
   event.target.value = ''
+}
+
+/**
+ * 压缩图片
+ * @param {File} file - 原始图片文件
+ * @param {number} maxWidth - 最大宽度
+ * @param {number} maxHeight - 最大高度
+ * @param {number} quality - 压缩质量 (0-1)
+ * @returns {Promise<string>} Base64 字符串
+ */
+function compressImage(file, maxWidth = 200, maxHeight = 200, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    
+    reader.onload = (e) => {
+      const img = new Image()
+      
+      img.onload = () => {
+        // 创建 canvas
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        
+        // 计算缩放比例
+        let width = img.width
+        let height = img.height
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height
+            height = maxHeight
+          }
+        }
+        
+        // 设置 canvas 尺寸
+        canvas.width = width
+        canvas.height = height
+        
+        // 绘制图片
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // 转换为 Base64（JPEG 格式，质量 0.7）
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality)
+        
+        console.log('✅ 图片压缩完成')
+        console.log('原始大小:', (file.size / 1024).toFixed(2), 'KB')
+        console.log('压缩后大小:', (compressedBase64.length / 1024).toFixed(2), 'KB')
+        
+        resolve(compressedBase64)
+      }
+      
+      img.onerror = () => {
+        reject(new Error('图片加载失败'))
+      }
+      
+      img.src = e.target.result
+    }
+    
+    reader.onerror = () => {
+      reject(new Error('图片读取失败'))
+    }
+    
+    reader.readAsDataURL(file)
+  })
 }
 </script>
 

@@ -149,54 +149,41 @@ async function confirmPayment() {
     console.log('💰 支付方式:', selectedMethod.value)
     console.log('💵 支付金额:', order.value.totalAmount || order.value.goodsAmount)
     
-    // 模拟支付延迟
+    // 模拟支付延迟（模拟真实支付过程）
     await new Promise(resolve => setTimeout(resolve, 1500))
     
-    // 调用后端 API 更新订单状态为 confirmed
-    const { api } = await import('@/api')
+    console.log('✅ 模拟支付完成')
     
-    // 注意：这个接口需要后端实现
-    // 正常情况下应该有一个支付回调接口，但这里是教学项目，我们直接更新状态
-    await api.patch(`/admin/orders/${orderId}/status`, {
-      status: 'confirmed'
-    })
+    // 🎓 教学项目说明：
+    // 在真实项目中，支付流程应该是：
+    // 1. 前端调用支付接口，获取支付URL/参数
+    // 2. 跳转到支付平台（微信/支付宝）
+    // 3. 用户在支付平台完成支付
+    // 4. 支付平台回调后端，后端验证并更新订单状态
+    // 5. 前端轮询或WebSocket获取最新订单状态
     
-    console.log('✅ 支付成功')
+    // 📝 当前教学项目的处理方式：
+    // - 前端只负责"模拟支付"，不更新订单状态
+    // - 订单保持 pending 状态
+    // - 后台管理员看到订单后，手动"确认"（模拟接收到支付平台的回调）
+    // - 这样可以完整演示前后台协作流程
     
     // 显示成功提示
-    toast.success(t('payment.success') || '支付成功！')
+    toast.success(
+      '支付成功！订单已提交给商家，请等待确认', 
+      2000
+    )
     
     // 延迟跳转到订单详情页
     setTimeout(() => {
       router.push(`/order/${orderId}`)
-    }, 500)
+    }, 2000)
+    
   } catch (err) {
     console.error('❌ 支付失败:', err)
-    
-    // 如果是权限问题（403 或包含权限/后台工作人员等关键字），提示用户这是正常的
-    const errorMessage = err.message || ''
-    const isPermissionError = 
-      errorMessage.includes('403') || 
-      errorMessage.includes('权限') || 
-      errorMessage.includes('后台工作人员') ||
-      errorMessage.includes('FORBIDDEN')
-    
-    if (isPermissionError) {
-      console.log('ℹ️ 这是预期的权限错误，普通用户无法更新订单状态')
-      toast.info('支付功能需要后端支持，订单已创建成功，请在后台管理系统中确认订单', 3000)
-      // 仍然跳转到订单详情
-      setTimeout(() => {
-        router.push(`/order/${orderId}`)
-      }, 2000)
-    } else {
-      error.value = errorMessage || t('payment.payError') || '支付失败，请重试'
-      isPaying.value = false
-    }
+    error.value = err.message || t('payment.payError') || '支付失败，请重试'
   } finally {
-    // 确保按钮状态恢复
-    if (!error.value) {
-      isPaying.value = false
-    }
+    isPaying.value = false
   }
 }
 

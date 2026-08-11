@@ -74,6 +74,11 @@ export const useOrderStore = defineStore('order', () => {
       const { orderApi } = await import('@/api')
       const response = await orderApi.getOrderDetail(orderId)
       
+      console.log('📦 原始订单数据:', response)
+      console.log('📍 地址对象:', response?.address)
+      console.log('📍 地址类型:', typeof response?.address)
+      console.log('📍 地址键名:', response?.address ? Object.keys(response.address) : '无地址')
+      
       if (response) {
         // 更新本地缓存
         const index = orders.value.findIndex(o => o.id === orderId)

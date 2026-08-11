@@ -94,16 +94,22 @@
       </div>
 
       <!-- 收货地址 -->
-      <div v-if="order.address" class="address-section">
+      <div class="address-section">
         <h2 class="section-title">{{ t('orderDetail.address') || '收货地址' }}</h2>
-        <div class="address-card">
+        <div v-if="order.address" class="address-card">
           <div class="address-header">
-            <span class="name">{{ order.address.receiverName || order.address.name }}</span>
-            <span class="phone">{{ order.address.receiverPhone || order.address.phone }}</span>
+            <span class="name">{{ order.address.receiverName || order.address.name || '未知' }}</span>
+            <span class="phone">{{ order.address.receiverPhone || order.address.phone || '未知' }}</span>
           </div>
           <p class="address-detail">
-            {{ order.address.province }} {{ order.address.city }} 
-            {{ order.address.district }} {{ order.address.detailAddress || order.address.detail }}
+            {{ order.address.province || '' }} {{ order.address.city || '' }} 
+            {{ order.address.district || '' }} {{ order.address.detailAddress || order.address.detail || '未知' }}
+          </p>
+        </div>
+        <div v-else class="address-card address-empty">
+          <p>暂无收货地址信息</p>
+          <p class="debug-info" style="font-size: 12px; color: #999; margin-top: 8px;">
+            调试信息：订单中没有 address 字段
           </p>
         </div>
       </div>
@@ -257,8 +263,16 @@ async function loadOrderDetail() {
     
     if (response) {
       order.value = response
-      console.log('📦 订单详情数据:', JSON.stringify(response, null, 2))
-      console.log('📍 地址信息:', response.address)
+      console.log('📦 订单详情页收到数据:', response)
+      console.log('📍 地址信息详细:', {
+        address: response.address,
+        hasAddress: !!response.address,
+        addressKeys: response.address ? Object.keys(response.address) : [],
+        receiverName: response.address?.receiverName,
+        name: response.address?.name,
+        receiverPhone: response.address?.receiverPhone,
+        phone: response.address?.phone
+      })
     } else {
       error.value = t('orderDetail.notFound') || '订单不存在'
     }
@@ -641,6 +655,12 @@ function formatDateTime(time) {
   background-color: #f8f8f8;
   padding: 16px;
   border-radius: 8px;
+  
+  &.address-empty {
+    text-align: center;
+    color: #999;
+    padding: 32px 16px;
+  }
 }
 
 .address-header {

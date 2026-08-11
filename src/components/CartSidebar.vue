@@ -24,12 +24,13 @@
           <!-- 购物车商品列表 -->
           <div v-else class="cart-items">
             <div v-for="item in cartItems" :key="item.id" class="cart-item">
-              <img :src="getProxyImageUrl(item.image)" :alt="item.name" class="item-image" />
+              <img :src="getProxyImageUrl(item.image || item.imageUrl)" :alt="item.name" class="item-image" />
               <div class="item-info">
                 <h4 class="item-name">{{ item.name }}</h4>
-                <p class="item-specs">{{ item.size }} / {{ item.ice }} / {{ item.sugar }}</p>
+                <!-- 使用后端返回的 specs 字段，或者构建规格文本 -->
+                <p class="item-specs">{{ item.specs || getSpecsText(item) }}</p>
                 <div class="item-footer">
-                  <span class="item-price">¥{{ item.price }}</span>
+                  <span class="item-price">¥{{ item.price || item.unitPrice }}</span>
                   <div class="quantity-control">
                     <button @click="decreaseQuantity(item)" class="qty-btn">-</button>
                     <span class="qty-value">{{ item.quantity }}</span>
@@ -93,6 +94,34 @@ const userStore = useUserStore()
 
 const cartItems = computed(() => cartStore.items)
 const totalPrice = computed(() => cartStore.totalPrice)
+
+// 构建规格文本
+function getSpecsText(item) {
+  if (item.specs) return item.specs
+  
+  const parts = []
+  if (item.sizeCode || item.size) {
+    parts.push(item.size || getSizeName(item.sizeCode))
+  }
+  if (item.sweetnessCode || item.sugar) {
+    parts.push(item.sugar || getSweetnessName(item.sweetnessCode))
+  }
+  if (item.toppingCodes && item.toppingCodes.length > 0) {
+    parts.push(item.toppingCodes.join('、'))
+  }
+  
+  return parts.join(' / ') || '默认'
+}
+
+function getSizeName(code) {
+  const sizeMap = { small: '小杯', medium: '中杯', large: '大杯' }
+  return sizeMap[code] || code
+}
+
+function getSweetnessName(code) {
+  const sweetnessMap = { none: '无糖', less: '少糖', normal: '正常糖', more: '多糖' }
+  return sweetnessMap[code] || code
+}
 
 function close() {
   emit('close')

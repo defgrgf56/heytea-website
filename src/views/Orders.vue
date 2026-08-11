@@ -140,18 +140,28 @@ function goToPayment(orderId) {
 async function cancelOrder(orderId) {
   const confirmed = await toast.confirm(t('orders.confirmCancel'))
   if (confirmed) {
-    const success = orderStore.cancelOrder(orderId)
-    if (success) {
+    try {
+      await orderStore.cancelOrder(orderId)
       toast.success(t('orders.cancelSuccess'))
+      // 重新加载订单列表
+      await orderStore.fetchOrders()
+    } catch (err) {
+      console.error('❌ 取消订单失败:', err)
+      toast.error(err.message || '取消订单失败')
     }
   }
 }
 
 // 重新下单
-function reorder(orderId) {
-  const newOrder = orderStore.reorder(orderId)
-  if (newOrder) {
+async function reorder(orderId) {
+  try {
+    await orderStore.reorder(orderId)
     toast.success(t('orders.reorderSuccess'))
+    // 跳转到购物车或结算页
+    router.push('/checkout')
+  } catch (err) {
+    console.error('❌ 再来一单失败:', err)
+    toast.error(err.message || '操作失败')
   }
 }
 </script>

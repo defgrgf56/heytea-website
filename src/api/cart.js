@@ -87,11 +87,24 @@ export const cartApi = {
     }
     
     // 真实 API - 提取真实的商品 ID（去除规格后缀）
-    // 前端 ID 格式：productId-size-toppings，后端只需要 productId
+    console.log('🛒 原始商品数据:', item)
+    
+    // 优先使用 productId，其次使用 id
     let productId = item.productId || item.id
+    console.log('📍 原始 productId:', productId, '类型:', typeof productId)
+    
+    // 如果 ID 包含连字符，提取第一部分
     if (typeof productId === 'string' && productId.includes('-')) {
-      // 提取第一部分作为真实 ID
-      productId = productId.split('-')[0]
+      const parts = productId.split('-')
+      productId = parts[0]
+      console.log('✂️ 提取后的 productId:', productId)
+    }
+    
+    // 验证 productId 是否为有效的 MongoDB ObjectId（24位十六进制字符串）
+    const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(productId)
+    if (!isValidObjectId) {
+      console.error('❌ 无效的 MongoDB ObjectId:', productId)
+      throw new Error(`商品ID格式不正确: ${productId}。需要24位十六进制字符串。`)
     }
     
     const requestBody = {

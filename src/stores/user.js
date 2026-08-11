@@ -117,11 +117,33 @@ export const useUserStore = defineStore('user', () => {
         console.warn('⚠️ 购物车同步禁用失败:', err.message)
       }
       
+      // 📦 清空订单数据
+      try {
+        const { useOrderStore } = await import('./order')
+        const orderStore = useOrderStore()
+        orderStore.clearOrders()
+        console.log('✅ 订单数据已清空')
+      } catch (err) {
+        console.warn('⚠️ 订单数据清空失败:', err.message)
+      }
+      
+      // 🏠 清空地址数据
+      try {
+        const { useAddressStore } = await import('./address')
+        const addressStore = useAddressStore()
+        addressStore.clearAddresses()
+        console.log('✅ 地址数据已清空')
+      } catch (err) {
+        console.warn('⚠️ 地址数据清空失败:', err.message)
+      }
+      
       // 清除本地数据
       user.value = null
       token.value = ''
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      
+      console.log('✅ 用户已登出，所有数据已清空')
     }
   }
 

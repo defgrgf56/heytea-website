@@ -160,6 +160,16 @@ export const useAddressStore = defineStore('address', () => {
     return addresses.value.find(addr => addr.id === id) || null
   }
   
+  /**
+   * 清空地址数据（用户登出时调用）
+   */
+  function clearAddresses() {
+    addresses.value = []
+    isLoading.value = false
+    error.value = null
+    console.log('🗑️ 地址数据已清空')
+  }
+  
   return {
     // 状态
     addresses,
@@ -174,6 +184,7 @@ export const useAddressStore = defineStore('address', () => {
     updateAddress,
     deleteAddress,
     setDefaultAddress,
-    getAddressById
+    getAddressById,
+    clearAddresses  // 新增：清空地址
   }
 })

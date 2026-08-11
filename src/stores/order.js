@@ -5,21 +5,43 @@ export const useOrderStore = defineStore('order', () => {
   // 订单列表
   const orders = ref([])
   
-  // 加载订单（从 localStorage）
+  // 获取当前用户的订单存储 key
+  function getStorageKey() {
+    const userStore = JSON.parse(localStorage.getItem('user') || '{}')
+    const userId = userStore.user?.id || userStore.user?.username || 'guest'
+    return `heytea_orders_${userId}`
+  }
+  
+  // 加载订单（从 localStorage，按用户隔离）
   function loadOrders() {
-    const stored = localStorage.getItem('orders')
+    const key = getStorageKey()
+    const stored = localStorage.getItem(key)
     if (stored) {
       try {
         orders.value = JSON.parse(stored)
+        console.log(`📦 从本地加载订单: ${orders.value.length} 个订单 (key: ${key})`)
       } catch (error) {
         console.error('加载订单失败:', error)
+        orders.value = []
       }
+    } else {
+      orders.value = []
     }
   }
   
-  // 保存订单（到 localStorage）
+  // 保存订单（到 localStorage，按用户隔离）
   function saveOrders() {
-    localStorage.setItem('orders', JSON.stringify(orders.value))
+    const key = getStorageKey()
+    localStorage.setItem(key, JSON.stringify(orders.value))
+    console.log(`💾 订单已保存到本地: ${orders.value.length} 个订单 (key: ${key})`)
+  }
+  
+  // 清空订单（用户登出时调用）
+  function clearOrders() {
+    orders.value = []
+    const key = getStorageKey()
+    localStorage.removeItem(key)
+    console.log(`🗑️ 已清空订单缓存 (key: ${key})`)
   }
   
   // 创建订单
@@ -106,29 +128,33 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
   
-  // 获取订单列表（从 API）
+  // 获取订单列表（从 API，这是主要数据源）
   async function fetchOrders(params = {}) {
     try {
       const { orderApi } = await import('@/api')
       const response = await orderApi.getOrders(params)
       
       if (response && response.list) {
+        // ⚠️ 重要：订单数据应该完全从服务器获取，不要混合本地缓存
         orders.value = response.list
-        saveOrders()
+        saveOrders()  // 保存到本地作为缓存
+        console.log(`✅ 从服务器加载订单: ${orders.value.length} 个订单`)
         return response
       }
       
-      return null
+      return { list: [], total: 0 }
     } catch (error) {
       console.error('获取订单列表失败:', error)
-      // 失败时使用本地缓存
+      // 失败时使用本地缓存（离线模式）
       loadOrders()
+      console.log(`⚠️ 使用本地缓存: ${orders.value.length} 个订单`)
       return { list: orders.value, total: orders.value.length }
     }
   }
   
-  // 初始化时加载订单
-  loadOrders()
+  // ⚠️ 不要在初始化时自动加载本地缓存
+  // 订单数据应该在用户登录后从服务器获取
+  // loadOrders()
   
   return {
     orders,
@@ -139,6 +165,7 @@ export const useOrderStore = defineStore('order', () => {
     reorder,
     fetchOrders,
     loadOrders,
+    clearOrders,  // 新增：清空订单
     loadOrdersFromStorage: loadOrders  // 别名，兼容 Profile 页面
   }
 })

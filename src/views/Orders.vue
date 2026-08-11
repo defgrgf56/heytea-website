@@ -95,7 +95,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useOrderStore } from '@/stores/order'
@@ -106,6 +106,18 @@ const { t, locale } = useI18n()
 const orderStore = useOrderStore()
 
 const orders = computed(() => orderStore.orders)
+
+// 🔄 页面加载时从服务器获取订单列表
+onMounted(async () => {
+  console.log('📋 订单列表页加载，开始获取订单...')
+  try {
+    await orderStore.fetchOrders()
+    console.log(`✅ 订单列表加载完成: ${orders.value.length} 个订单`)
+  } catch (err) {
+    console.error('❌ 加载订单列表失败:', err)
+    toast.error('加载订单列表失败，请稍后重试')
+  }
+})
 
 // 格式化时间
 function formatTime(isoTime) {

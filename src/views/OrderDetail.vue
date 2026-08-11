@@ -96,21 +96,32 @@
       <!-- 收货地址 -->
       <div class="address-section">
         <h2 class="section-title">{{ t('orderDetail.address') || '收货地址' }}</h2>
-        <div v-if="order.address" class="address-card">
-          <div class="address-header">
-            <span class="name">{{ order.address.receiverName || order.address.name || '未知' }}</span>
-            <span class="phone">{{ order.address.receiverPhone || order.address.phone || '未知' }}</span>
-          </div>
-          <p class="address-detail">
-            {{ order.address.province || '' }} {{ order.address.city || '' }} 
-            {{ order.address.district || '' }} {{ order.address.detailAddress || order.address.detail || '未知' }}
-          </p>
-        </div>
-        <div v-else class="address-card address-empty">
-          <p>暂无收货地址信息</p>
-          <p class="debug-info" style="font-size: 12px; color: #999; margin-top: 8px;">
-            调试信息：订单中没有 address 字段
-          </p>
+        <div class="address-card">
+          <!-- 如果 address 是对象 -->
+          <template v-if="typeof order.address === 'object' && order.address !== null">
+            <div class="address-header">
+              <span class="name">{{ order.address.receiverName || order.address.name || '未知' }}</span>
+              <span class="phone">{{ order.address.receiverPhone || order.address.phone || '未知' }}</span>
+            </div>
+            <p class="address-detail">
+              {{ order.address.province || '' }} {{ order.address.city || '' }} 
+              {{ order.address.district || '' }} {{ order.address.detailAddress || order.address.detail || '未知' }}
+            </p>
+          </template>
+          
+          <!-- 如果 address 是字符串（后端简化格式） -->
+          <template v-else-if="typeof order.address === 'string'">
+            <div class="address-header">
+              <span class="name">{{ order.userName || '未知' }}</span>
+              <span class="phone">{{ order.phone || '未知' }}</span>
+            </div>
+            <p class="address-detail">{{ order.address }}</p>
+          </template>
+          
+          <!-- 没有地址信息 -->
+          <template v-else>
+            <p class="address-empty">暂无收货地址信息</p>
+          </template>
         </div>
       </div>
 
@@ -656,10 +667,11 @@ function formatDateTime(time) {
   padding: 16px;
   border-radius: 8px;
   
-  &.address-empty {
+  .address-empty {
     text-align: center;
     color: #999;
-    padding: 32px 16px;
+    padding: 16px 0;
+    margin: 0;
   }
 }
 

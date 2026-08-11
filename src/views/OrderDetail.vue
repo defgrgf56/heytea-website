@@ -10,6 +10,15 @@
     </div>
 
     <div v-else-if="order" class="order-container">
+      <!-- 待确认提示横幅 -->
+      <div v-if="order.status === 'pending'" class="pending-notice">
+        <div class="notice-icon">⏳</div>
+        <div class="notice-content">
+          <h3>订单已提交，等待商家确认</h3>
+          <p>您的订单已成功提交！商家将在后台确认订单后开始制作，请耐心等待。</p>
+        </div>
+      </div>
+      
       <!-- 订单状态跟踪 -->
       <div class="status-tracker">
         <h2 class="section-title">{{ t('orderDetail.orderStatus') || '订单状态' }}</h2>

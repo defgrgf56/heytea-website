@@ -194,10 +194,13 @@ async function submitOrder() {
     await cartStore.clearCart()
     
     // 显示成功消息
-    toast.success(t('checkout.success') || '订单提交成功')
+    toast.success(t('checkout.success') || '订单提交成功！等待商家确认', 2000)
     
-    // 跳转到支付页面
-    router.push(`/payment/${newOrder.id}`)
+    // ✅ 直接跳转到订单详情页（不再跳转支付页面）
+    // 订单状态为 pending，显示"待后台确认"
+    setTimeout(() => {
+      router.push(`/order/${newOrder.id}`)
+    }, 1000)
   } catch (error) {
     console.error('❌ 提交订单失败:', error)
     

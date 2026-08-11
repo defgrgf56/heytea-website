@@ -197,9 +197,12 @@
           </div>
           <div class="form-group">
             <label class="checkbox-label">
-              <input v-model="addressForm.isDefault" type="checkbox" />
+              <input v-model="addressForm.isDefault" type="checkbox" @change="handleDefaultChange" />
               <span>{{ t('address.setAsDefault') }}</span>
             </label>
+            <p v-if="addressForm.isDefault" class="default-address-hint">
+              ⚠️ 设为默认后，其他地址的默认状态将自动取消
+            </p>
           </div>
           <div class="modal-actions">
             <button class="btn-cancel" @click="showAddressForm = false">
@@ -494,6 +497,11 @@ function saveAddress() {
     return
   }
   
+  // ⚠️ 如果设为默认地址，提示用户
+  if (addressForm.isDefault) {
+    console.log('📍 设为默认地址，其他地址的默认状态将被取消')
+  }
+  
   const addressData = {
     name: addressForm.name,
     phone: addressForm.phone,
@@ -515,6 +523,17 @@ function saveAddress() {
   
   showAddressForm.value = false
   resetAddressForm()
+}
+
+// 处理默认地址复选框变化
+function handleDefaultChange(event) {
+  if (event.target.checked) {
+    // 检查是否已有默认地址
+    const hasDefault = addresses.value.some(addr => addr.isDefault && addr.id !== editingAddressId.value)
+    if (hasDefault) {
+      console.log('⚠️ 已有默认地址，设置后将自动取消其他地址的默认状态')
+    }
+  }
 }
 
 async function deleteAddress(id) {

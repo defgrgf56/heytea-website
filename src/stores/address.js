@@ -63,7 +63,20 @@ export const useAddressStore = defineStore('address', () => {
    */
   async function addAddress(addressData) {
     try {
+      // ⚠️ 如果新地址设置为默认，需要先取消其他地址的默认状态
+      if (addressData.isDefault && addresses.value.length > 0) {
+        console.log('⚠️ 新地址设为默认，将取消其他地址的默认状态')
+        // 后端会自动处理，这里只需要更新本地状态
+      }
+      
       const newAddress = await addressApi.addAddress(addressData)
+      
+      // 如果新地址是默认地址，取消本地其他地址的默认状态
+      if (newAddress.isDefault) {
+        addresses.value.forEach(addr => {
+          addr.isDefault = false
+        })
+      }
       
       // 添加到本地列表
       addresses.value.unshift(newAddress)
@@ -84,7 +97,22 @@ export const useAddressStore = defineStore('address', () => {
    */
   async function updateAddress(id, addressData) {
     try {
+      // ⚠️ 如果地址设置为默认，需要先取消其他地址的默认状态
+      if (addressData.isDefault) {
+        console.log('⚠️ 地址设为默认，将取消其他地址的默认状态')
+        // 后端会自动处理，这里只需要更新本地状态
+      }
+      
       const updatedAddress = await addressApi.updateAddress(id, addressData)
+      
+      // 如果更新后的地址是默认地址，取消本地其他地址的默认状态
+      if (updatedAddress.isDefault) {
+        addresses.value.forEach(addr => {
+          if (addr.id !== id) {
+            addr.isDefault = false
+          }
+        })
+      }
       
       // 更新本地列表
       const index = addresses.value.findIndex(addr => addr.id === id)

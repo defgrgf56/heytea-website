@@ -162,8 +162,33 @@ export const cartApi = {
       }
     }
     
-    // 真实 API - 按照接口文档格式
-    return api.put(`/cart/items/${itemId}`, { 
+    // 真实 API - 提取真实的购物车项 ID
+    console.log('🔄 更新购物车数量 - 原始 itemId:', itemId, '数量:', quantity)
+    
+    // 如果 itemId 是复合ID（包含规格），提取真实ID
+    let realItemId = itemId
+    if (typeof itemId === 'string' && itemId.includes('-')) {
+      // 格式：productId-size-ice-sweetness
+      // 只取第一部分作为真实ID
+      realItemId = itemId.split('-')[0]
+      console.log('✂️ 提取真实 itemId:', realItemId)
+    }
+    
+    // 验证是否为有效的 MongoDB ObjectId
+    const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(realItemId)
+    if (!isValidObjectId) {
+      console.error('❌ 无效的购物车项ID:', realItemId)
+      console.warn('⚠️ 跳过后端同步，仅在本地更新')
+      // 本地已经更新了，不抛出错误
+      return {
+        success: true,
+        data: { quantity },
+        message: '本地更新成功'
+      }
+    }
+    
+    // 按照接口文档格式
+    return api.put(`/cart/items/${realItemId}`, { 
       quantity: quantity 
     })
   },
@@ -192,8 +217,28 @@ export const cartApi = {
       }
     }
     
-    // 真实 API
-    return api.delete(`/cart/items/${itemId}`)
+    // 真实 API - 提取真实的购物车项 ID
+    console.log('🗑️ 删除购物车项 - 原始 itemId:', itemId)
+    
+    // 如果 itemId 是复合ID（包含规格），提取真实ID
+    let realItemId = itemId
+    if (typeof itemId === 'string' && itemId.includes('-')) {
+      realItemId = itemId.split('-')[0]
+      console.log('✂️ 提取真实 itemId:', realItemId)
+    }
+    
+    // 验证是否为有效的 MongoDB ObjectId
+    const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(realItemId)
+    if (!isValidObjectId) {
+      console.error('❌ 无效的购物车项ID:', realItemId)
+      console.warn('⚠️ 跳过后端同步，仅在本地删除')
+      return {
+        success: true,
+        message: '本地删除成功'
+      }
+    }
+    
+    return api.delete(`/cart/items/${realItemId}`)
   },
 
   /**

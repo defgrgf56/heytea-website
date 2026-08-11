@@ -182,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useOrderStore } from '@/stores/order'
@@ -202,6 +202,9 @@ const loading = ref(true)
 const error = ref(null)
 const isCancelling = ref(false)
 const isReordering = ref(false)
+
+// 自动刷新定时器
+let refreshTimer = null
 
 // 订单状态步骤定义
 const statusStepMap = {
@@ -263,6 +266,14 @@ const canReorder = computed(() => {
 // 加载订单详情
 onMounted(async () => {
   await loadOrderDetail()
+  
+  // 如果订单未完成，启动自动刷新
+  startAutoRefresh()
+})
+
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  stopAutoRefresh()
 })
 
 async function loadOrderDetail() {
@@ -292,6 +303,57 @@ async function loadOrderDetail() {
     error.value = err.message || t('orderDetail.loadError') || '加载失败'
   } finally {
     loading.value = false
+  }
+}
+
+/**
+ * 启动自动刷新（如果订单未完成）
+ * 每10秒刷新一次订单状态
+ */
+function startAutoRefresh() {
+  // 清除之前的定时器
+  stopAutoRefresh()
+  
+  // 只有订单未完成或未取消时才自动刷新
+  if (order.value && !['completed', 'cancelled'].includes(order.value.status)) {
+    console.log('🔄 启动订单状态自动刷新（每10秒）')
+    
+    refreshTimer = setInterval(async () => {
+      // 静默刷新（不显示 loading）
+      try {
+        const response = await orderStore.fetchOrderDetail(orderId)
+        if (response) {
+          const oldStatus = order.value.status
+          order.value = response
+          
+          // 如果状态发生变化，显示提示
+          if (oldStatus !== response.status) {
+            console.log('✅ 订单状态已更新:', oldStatus, '→', response.status)
+            // 可以添加 toast 提示
+            // toast.info(`订单状态已更新为：${getStatusText(response.status)}`)
+          }
+          
+          // 如果订单已完成或取消，停止自动刷新
+          if (['completed', 'cancelled'].includes(response.status)) {
+            console.log('🛑 订单已完成，停止自动刷新')
+            stopAutoRefresh()
+          }
+        }
+      } catch (err) {
+        console.error('自动刷新订单失败:', err)
+      }
+    }, 10000) // 每10秒刷新一次
+  }
+}
+
+/**
+ * 停止自动刷新
+ */
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+    console.log('🛑 已停止订单状态自动刷新')
   }
 }
 

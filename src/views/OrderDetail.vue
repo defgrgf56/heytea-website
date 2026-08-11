@@ -190,7 +190,8 @@ const statusStepMap = {
   pending: { index: 0, label: '待支付' },
   confirmed: { index: 1, label: '已确认' },
   preparing: { index: 2, label: '制作中' },
-  completed: { index: 3, label: '已完成' },
+  delivering: { index: 3, label: '配送中' },
+  completed: { index: 4, label: '已完成' },
   cancelled: { index: -1, label: '已取消' }
 }
 
@@ -217,6 +218,7 @@ const orderStatusSteps = computed(() => {
     { status: 'pending', label: '待支付', time: order.value.createTime },
     { status: 'confirmed', label: '已确认', time: order.value.confirmedTime },
     { status: 'preparing', label: '制作中', time: order.value.preparingTime },
+    { status: 'delivering', label: '配送中', time: order.value.deliveringTime },
     { status: 'completed', label: '已完成', time: order.value.completedTime }
   ]
 })
@@ -330,6 +332,7 @@ function getStatusText(status) {
     pending: '待支付',
     confirmed: '已确认',
     preparing: '制作中',
+    delivering: '配送中',
     completed: '已完成',
     cancelled: '已取消'
   }
@@ -529,6 +532,11 @@ function formatDateTime(time) {
       &.status-preparing {
         background-color: #f3e5f5;
         color: #9c27b0;
+      }
+      
+      &.status-delivering {
+        background-color: #e1f5fe;
+        color: #03a9f4;
       }
       
       &.status-completed {

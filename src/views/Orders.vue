@@ -243,6 +243,11 @@ function reorder(orderId) {
     color: #9c27b0;
   }
 
+  &.status-delivering {
+    background-color: #e1f5fe;
+    color: #03a9f4;
+  }
+
   &.status-completed {
     background-color: #e8f5e9;
     color: #4caf50;

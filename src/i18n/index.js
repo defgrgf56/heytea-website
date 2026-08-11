@@ -148,6 +148,7 @@ const messages = {
         pending: '待确认',
         confirmed: '已确认',
         preparing: '制作中',
+        delivering: '配送中',
         completed: '已完成',
         cancelled: '已取消'
       },
@@ -483,6 +484,7 @@ const messages = {
         pending: 'Pending',
         confirmed: 'Confirmed',
         preparing: 'Preparing',
+        delivering: 'Delivering',
         completed: 'Completed',
         cancelled: 'Cancelled'
       },

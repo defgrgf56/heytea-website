@@ -8,7 +8,7 @@
         <h2 class="section-title">{{ t('checkout.orderItems') }}</h2>
         <div class="items-list">
           <div v-for="item in cartItems" :key="item.id" class="item">
-            <img :src="item.image" :alt="item.name" class="item-image" />
+            <img :src="getProxyImageUrl(item.image)" :alt="item.name" class="item-image" />
             <div class="item-info">
               <h3 class="item-name">{{ item.name }}</h3>
               <p class="item-price">¥{{ item.price }} × {{ item.quantity }}</p>
@@ -115,6 +115,7 @@ import { useCartStore } from '@/stores/cart'
 import { useOrderStore } from '@/stores/order'
 import { useAddressStore } from '@/stores/address'
 import toast from '@/utils/toast'
+import { getProxyImageUrl } from '@/utils/image'
 
 const router = useRouter()
 const { t } = useI18n()

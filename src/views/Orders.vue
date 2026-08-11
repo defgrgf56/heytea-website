@@ -29,7 +29,7 @@
               :key="item.id"
               class="order-item"
             >
-              <img :src="item.image" :alt="item.name" />
+              <img :src="getProxyImageUrl(item.image)" :alt="item.name" />
               <div class="item-info">
                 <p class="item-name">{{ locale === 'zh-CN' ? item.name : item.nameEn }}</p>
                 <p class="item-quantity">x{{ item.quantity }}</p>
@@ -100,6 +100,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useOrderStore } from '@/stores/order'
 import toast from '@/utils/toast'
+import { getProxyImageUrl } from '@/utils/image'
 
 const router = useRouter()
 const { t, locale } = useI18n()

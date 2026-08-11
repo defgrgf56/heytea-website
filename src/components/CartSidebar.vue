@@ -24,7 +24,7 @@
           <!-- 购物车商品列表 -->
           <div v-else class="cart-items">
             <div v-for="item in cartItems" :key="item.id" class="cart-item">
-              <img :src="item.image" :alt="item.name" class="item-image" />
+              <img :src="getProxyImageUrl(item.image)" :alt="item.name" class="item-image" />
               <div class="item-info">
                 <h4 class="item-name">{{ item.name }}</h4>
                 <p class="item-specs">{{ item.size }} / {{ item.ice }} / {{ item.sugar }}</p>
@@ -75,6 +75,7 @@ import { useI18n } from 'vue-i18n'
 import { useCartStore } from '@/stores/cart'
 import { useUserStore } from '@/stores/user'
 import toast from '@/utils/toast'
+import { getProxyImageUrl } from '@/utils/image'
 
 const props = defineProps({
   isOpen: {

@@ -53,7 +53,7 @@
           @click="viewDetail(product.id)"
         >
           <div class="product-image">
-            <img :src="product.image" :alt="product.name" />
+            <img :src="getProxyImageUrl(product.image)" :alt="product.name" />
             <div class="product-badge" v-if="product.isNew">
               {{ t('order.new') }}
             </div>
@@ -88,6 +88,7 @@ import { useCartStore } from '@/stores/cart'
 import { useProductStore } from '@/stores/product'
 import { storeToRefs } from 'pinia'
 import toast from '@/utils/toast'
+import { getProxyImageUrl } from '@/utils/image'
 
 const router = useRouter()
 const { t, locale } = useI18n()

@@ -68,7 +68,7 @@
         <h2 class="section-title">{{ t('orderDetail.items') || '订单商品' }}</h2>
         <div class="items-list">
           <div v-for="item in order.items" :key="item.id" class="item-card">
-            <img :src="item.image || item.imageUrl" :alt="item.name" class="item-image" />
+            <img :src="getProxyImageUrl(item.image || item.imageUrl)" :alt="item.name" class="item-image" />
             <div class="item-info">
               <h3 class="item-name">{{ item.name }}</h3>
               <p v-if="item.selectedSize" class="item-spec">
@@ -171,6 +171,7 @@ import { useI18n } from 'vue-i18n'
 import { useOrderStore } from '@/stores/order'
 import { useCartStore } from '@/stores/cart'
 import toast from '@/utils/toast'
+import { getProxyImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()

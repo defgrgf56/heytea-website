@@ -1342,6 +1342,19 @@ function compressImage(file, maxWidth = 200, maxHeight = 200, quality = 0.7) {
   }
 }
 
+.default-address-hint {
+  font-size: 13px;
+  color: #ff9800;
+  margin: 8px 0 0 0;
+  padding: 8px 12px;
+  background-color: #fff3e0;
+  border-radius: 6px;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
 @media (max-width: 768px) {
   .avatar-container {
     width: 60px;

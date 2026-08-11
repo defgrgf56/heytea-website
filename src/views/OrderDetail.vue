@@ -94,16 +94,16 @@
       </div>
 
       <!-- 收货地址 -->
-      <div class="address-section">
+      <div v-if="order.address" class="address-section">
         <h2 class="section-title">{{ t('orderDetail.address') || '收货地址' }}</h2>
         <div class="address-card">
           <div class="address-header">
-            <span class="name">{{ order.address.name }}</span>
-            <span class="phone">{{ order.address.phone }}</span>
+            <span class="name">{{ order.address.receiverName || order.address.name }}</span>
+            <span class="phone">{{ order.address.receiverPhone || order.address.phone }}</span>
           </div>
           <p class="address-detail">
             {{ order.address.province }} {{ order.address.city }} 
-            {{ order.address.district }} {{ order.address.detail }}
+            {{ order.address.district }} {{ order.address.detailAddress || order.address.detail }}
           </p>
         </div>
       </div>
@@ -257,6 +257,8 @@ async function loadOrderDetail() {
     
     if (response) {
       order.value = response
+      console.log('📦 订单详情数据:', JSON.stringify(response, null, 2))
+      console.log('📍 地址信息:', response.address)
     } else {
       error.value = t('orderDetail.notFound') || '订单不存在'
     }
